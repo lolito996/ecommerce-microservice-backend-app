@@ -1,0 +1,44 @@
+pipeline {
+    agent any
+    environment {
+        KUBERNETES_NAMESPACE = 'ecommerce-microservices-stage'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Deploy to Kubernetes Stage') {
+            steps {
+                withKubeConfig([credentialsId: 'kubeconfig-stage']) {
+                    sh 'kubectl apply -f kubernetes/'
+                }
+            }
+        }
+        stage('Test Deployed Services') {
+            steps {
+                // Verifica que los pods estén corriendo
+                sh 'kubectl get pods -n $KUBERNETES_NAMESPACE'
+                // Prueba endpoint de api-gateway
+                sh 'curl --fail http://api-gateway-container:8080/actuator/health'
+                // Prueba endpoint de user-service
+                sh 'curl --fail http://user-service-container:8700/actuator/health'
+                // Prueba endpoint de product-service
+                sh 'curl --fail http://product-service-container:8500/actuator/health'
+                // Puedes agregar más pruebas específicas aquí
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo 'Despliegue y pruebas en Kubernetes stage exitosas!'
+        }
+        failure {
+            echo 'Error en despliegue o pruebas en Kubernetes stage.'
+        }
+    }
+}
