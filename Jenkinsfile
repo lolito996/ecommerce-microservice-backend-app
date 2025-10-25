@@ -22,56 +22,56 @@ pipeline {
                 stage('Build User Service') {
                     steps {
                         dir('user-service') {
-                            sh 'mvn clean package -DskipTests'
+                            bat 'mvnw.cmd clean package'
                         }
                     }
                 }
                 stage('Build Product Service') {
                     steps {
                         dir('product-service') {
-                            sh 'mvn clean package -DskipTests'
+                            bat 'mvnw.cmd clean package'
                         }
                     }
                 }
                 stage('Build Order Service') {
                     steps {
                         dir('order-service') {
-                            sh 'mvn clean package -DskipTests'
+                            bat 'mvnw.cmd clean package'
                         }
                     }
                 }
                 stage('Build Payment Service') {
                     steps {
                         dir('payment-service') {
-                            sh 'mvn clean package -DskipTests'
+                            bat 'mvnw.cmd clean package'
                         }
                     }
                 }
                 stage('Build Favourite Service') {
                     steps {
                         dir('favourite-service') {
-                            sh 'mvn clean package -DskipTests'
+                            bat 'mvnw.cmd clean package'
                         }
                     }
                 }
                 stage('Build Proxy Client') {
                     steps {
                         dir('proxy-client') {
-                            sh 'mvn clean package -DskipTests'
+                            bat 'mvnw.cmd clean package'
                         }
                     }
                 }
                 stage('Build Cloud Config') {
                     steps {
                         dir('cloud-config') {
-                            sh 'mvn clean package -DskipTests'
+                            bat 'mvnw.cmd clean package'
                         }
                     }
                 }
                 stage('Build Service Discovery') {
                     steps {
                         dir('service-discovery') {
-                            sh 'mvn clean package -DskipTests'
+                            bat 'mvnw.cmd clean package'
                         }
                     }
                 }
