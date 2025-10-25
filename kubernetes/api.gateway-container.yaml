@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: ecommerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: selimhorri/api-gateway-ecommerce-boot:0.1.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: dev
+            - name: SPRING_ZIPKIN_BASE_URL
+              value: http://zipkin:9411
+            - name: SPRING_CONFIG_IMPORT
+              value: optional:configserver:http://cloud-config:9296/
+            - name: SPRING_CLOUD_CONFIG_URI
+              value: http://cloud-config:9296
+            - name: SPRING_CLOUD_CONFIG_ALLOW_OVERRIDE
+              value: "true"
+            - name: SPRING_CLOUD_CONFIG_OVERRIDE_NONE
+              value: "true"
+            - name: SPRING_CLOUD_CONFIG_OVERRIDE_SYSTEM_PROPERTIES
+              value: "false"
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: http://service-discovery:8761/eureka/
+            - name: EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE
+              value: http://service-discovery:8761/eureka/
+            - name: EUREKA_CLIENT_REGISTER_WITH_EUREKA
+              value: "true"
+            - name: EUREKA_CLIENT_FETCH_REGISTRY
+              value: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: ecommerce
+spec:
+  selector:
+    app: api-gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
+  type: NodePort
