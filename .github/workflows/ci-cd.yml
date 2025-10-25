@@ -27,8 +27,59 @@ jobs:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
-      # Build y push de todos los microservicios
+      # Build JAR de todos los microservicios Java antes de construir la imagen
+      - name: Build api-gateway JAR
+        run: |
+          cd api-gateway
+          ./mvnw clean package -DskipTests
 
+      - name: Build proxy-client JAR
+        run: |
+          cd proxy-client
+          ./mvnw clean package -DskipTests
+
+      - name: Build order-service JAR
+        run: |
+          cd order-service
+          ./mvnw clean package -DskipTests
+
+      - name: Build payment-service JAR
+        run: |
+          cd payment-service
+          ./mvnw clean package -DskipTests
+
+      - name: Build product-service JAR
+        run: |
+          cd product-service
+          ./mvnw clean package -DskipTests
+
+      - name: Build user-service JAR
+        run: |
+          cd user-service
+          ./mvnw clean package -DskipTests
+
+      - name: Build favourite-service JAR
+        run: |
+          cd favourite-service
+          ./mvnw clean package -DskipTests
+
+      - name: Build shipping-service JAR
+        run: |
+          cd shipping-service
+          ./mvnw clean package -DskipTests
+
+      # Build JAR de servicios core
+      - name: Build cloud-config JAR
+        run: |
+          cd cloud-config
+          ./mvnw clean package -DskipTests
+
+      - name: Build service-discovery JAR
+        run: |
+          cd service-discovery
+          ./mvnw clean package -DskipTests
+
+      # Build & Push de todos los microservicios
       - name: Build & Push api-gateway
         uses: docker/build-push-action@v5
         with:
@@ -109,4 +160,3 @@ jobs:
           file: ./service-discovery/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/alejomunoz/service-discovery-ecommerce-boot:dev
-
