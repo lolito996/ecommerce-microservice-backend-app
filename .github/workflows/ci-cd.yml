@@ -39,6 +39,11 @@ jobs:
           cd cloud-config && ./mvnw clean package -DskipTests && cd ..
           cd service-discovery && ./mvnw clean package -DskipTests && cd ..
 
+      # Verificar JAR generado
+      - name: Verificar JAR generado
+        run: |
+          ls -l api-gateway/target/
+
       # Build & Push de todos los microservicios y core
       - name: Build & Push api-gateway
         uses: docker/build-push-action@v5
