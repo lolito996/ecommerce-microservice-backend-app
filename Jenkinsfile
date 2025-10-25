@@ -22,56 +22,56 @@ pipeline {
                 stage('Build User Service') {
                     steps {
                         dir('user-service') {
-                            bat 'mvnw.cmd clean package'
+                            bat 'mvn clean package'
                         }
                     }
                 }
                 stage('Build Product Service') {
                     steps {
                         dir('product-service') {
-                            bat 'mvnw.cmd clean package'
+                            bat 'mvn clean package'
                         }
                     }
                 }
                 stage('Build Order Service') {
                     steps {
                         dir('order-service') {
-                            bat 'mvnw.cmd clean package'
+                            bat 'mvn clean package'
                         }
                     }
                 }
                 stage('Build Payment Service') {
                     steps {
                         dir('payment-service') {
-                            bat 'mvnw.cmd clean package'
+                            bat 'mvn clean package'
                         }
                     }
                 }
                 stage('Build Favourite Service') {
                     steps {
                         dir('favourite-service') {
-                            bat 'mvnw.cmd clean package'
+                            bat 'mvn clean package'
                         }
                     }
                 }
                 stage('Build Proxy Client') {
                     steps {
                         dir('proxy-client') {
-                            bat 'mvnw.cmd clean package'
+                            bat 'mvn clean package'
                         }
                     }
                 }
                 stage('Build Cloud Config') {
                     steps {
                         dir('cloud-config') {
-                            bat 'mvnw.cmd clean package'
+                            bat 'mvn clean package'
                         }
                     }
                 }
                 stage('Build Service Discovery') {
                     steps {
                         dir('service-discovery') {
-                            bat 'mvnw.cmd clean package'
+                            bat 'mvn clean package'
                         }
                     }
                 }
