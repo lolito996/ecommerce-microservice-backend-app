@@ -11,8 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
-      KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
-      NAMESPACE: ecommerce
     steps:
       - name: Checkout código
         uses: actions/checkout@v3
@@ -27,66 +25,28 @@ jobs:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
-      # Build JAR de todos los microservicios Java antes de construir la imagen
-      - name: Build api-gateway JAR
+      # Build JAR de todos los microservicios y core
+      - name: Build todos los JAR
         run: |
-          cd api-gateway
-          ./mvnw clean package -DskipTests
+          cd api-gateway && ./mvnw clean package -DskipTests && cd ..
+          cd proxy-client && ./mvnw clean package -DskipTests && cd ..
+          cd order-service && ./mvnw clean package -DskipTests && cd ..
+          cd payment-service && ./mvnw clean package -DskipTests && cd ..
+          cd product-service && ./mvnw clean package -DskipTests && cd ..
+          cd user-service && ./mvnw clean package -DskipTests && cd ..
+          cd favourite-service && ./mvnw clean package -DskipTests && cd ..
+          cd shipping-service && ./mvnw clean package -DskipTests && cd ..
+          cd cloud-config && ./mvnw clean package -DskipTests && cd ..
+          cd service-discovery && ./mvnw clean package -DskipTests && cd ..
 
-      - name: Build proxy-client JAR
-        run: |
-          cd proxy-client
-          ./mvnw clean package -DskipTests
-
-      - name: Build order-service JAR
-        run: |
-          cd order-service
-          ./mvnw clean package -DskipTests
-
-      - name: Build payment-service JAR
-        run: |
-          cd payment-service
-          ./mvnw clean package -DskipTests
-
-      - name: Build product-service JAR
-        run: |
-          cd product-service
-          ./mvnw clean package -DskipTests
-
-      - name: Build user-service JAR
-        run: |
-          cd user-service
-          ./mvnw clean package -DskipTests
-
-      - name: Build favourite-service JAR
-        run: |
-          cd favourite-service
-          ./mvnw clean package -DskipTests
-
-      - name: Build shipping-service JAR
-        run: |
-          cd shipping-service
-          ./mvnw clean package -DskipTests
-
-      # Build JAR de servicios core
-      - name: Build cloud-config JAR
-        run: |
-          cd cloud-config
-          ./mvnw clean package -DskipTests
-
-      - name: Build service-discovery JAR
-        run: |
-          cd service-discovery
-          ./mvnw clean package -DskipTests
-
-      # Build & Push de todos los microservicios
+      # Build & Push de todos los microservicios y core
       - name: Build & Push api-gateway
         uses: docker/build-push-action@v5
         with:
           context: ./api-gateway
           file: ./api-gateway/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/alejomunoz/api-gateway-ecommerce-boot:dev
+          tags: ${{ env.REGISTRY }}/selimhorri/api-gateway-ecommerce-boot:0.1.0
 
       - name: Build & Push proxy-client
         uses: docker/build-push-action@v5
@@ -94,7 +54,7 @@ jobs:
           context: ./proxy-client
           file: ./proxy-client/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/alejomunoz/proxy-client-ecommerce-boot:dev
+          tags: ${{ env.REGISTRY }}/selimhorri/proxy-client-ecommerce-boot:0.1.0
 
       - name: Build & Push order-service
         uses: docker/build-push-action@v5
@@ -102,7 +62,7 @@ jobs:
           context: ./order-service
           file: ./order-service/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/alejomunoz/order-service-ecommerce-boot:dev
+          tags: ${{ env.REGISTRY }}/selimhorri/order-service-ecommerce-boot:0.1.0
 
       - name: Build & Push payment-service
         uses: docker/build-push-action@v5
@@ -110,7 +70,7 @@ jobs:
           context: ./payment-service
           file: ./payment-service/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/alejomunoz/payment-service-ecommerce-boot:dev
+          tags: ${{ env.REGISTRY }}/selimhorri/payment-service-ecommerce-boot:0.1.0
 
       - name: Build & Push product-service
         uses: docker/build-push-action@v5
@@ -118,7 +78,7 @@ jobs:
           context: ./product-service
           file: ./product-service/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/alejomunoz/product-service-ecommerce-boot:dev
+          tags: ${{ env.REGISTRY }}/selimhorri/product-service-ecommerce-boot:0.1.0
 
       - name: Build & Push user-service
         uses: docker/build-push-action@v5
@@ -126,7 +86,7 @@ jobs:
           context: ./user-service
           file: ./user-service/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/alejomunoz/user-service-ecommerce-boot:dev
+          tags: ${{ env.REGISTRY }}/selimhorri/user-service-ecommerce-boot:0.1.0
 
       - name: Build & Push favourite-service
         uses: docker/build-push-action@v5
@@ -134,7 +94,7 @@ jobs:
           context: ./favourite-service
           file: ./favourite-service/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/alejomunoz/favourite-service-ecommerce-boot:dev
+          tags: ${{ env.REGISTRY }}/selimhorri/favourite-service-ecommerce-boot:0.1.0
 
       - name: Build & Push shipping-service
         uses: docker/build-push-action@v5
@@ -142,16 +102,15 @@ jobs:
           context: ./shipping-service
           file: ./shipping-service/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/alejomunoz/shipping-service-ecommerce-boot:dev
+          tags: ${{ env.REGISTRY }}/selimhorri/shipping-service-ecommerce-boot:0.1.0
 
-      # Build & Push servicios core
       - name: Build & Push cloud-config
         uses: docker/build-push-action@v5
         with:
           context: ./cloud-config
           file: ./cloud-config/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/alejomunoz/cloud-config-ecommerce-boot:dev
+          tags: ${{ env.REGISTRY }}/selimhorri/cloud-config-ecommerce-boot:0.1.0
 
       - name: Build & Push service-discovery
         uses: docker/build-push-action@v5
@@ -159,4 +118,4 @@ jobs:
           context: ./service-discovery
           file: ./service-discovery/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/alejomunoz/service-discovery-ecommerce-boot:dev
+          tags: ${{ env.REGISTRY }}/selimhorri/service-discovery-ecommerce-boot:0.1.0
