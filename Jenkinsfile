@@ -83,104 +83,80 @@ pipeline {
                 stage('Build User Service Image') {
                     steps {
                         dir('user-service') {
-                            script {
-                                def image = docker.build("${DOCKER_REGISTRY}/user-service-ecommerce-boot:${DOCKER_TAG}")
-                                docker.withRegistry('', 'docker-hub-credentials') {
-                                    image.push()
-                                    image.push('latest')
-                                }
-                            }
+                            bat "docker build -t %DOCKER_REGISTRY%/user-service-ecommerce-boot:%DOCKER_TAG% ."
+                            bat "docker push %DOCKER_REGISTRY%/user-service-ecommerce-boot:%DOCKER_TAG%"
+                            bat "docker tag %DOCKER_REGISTRY%/user-service-ecommerce-boot:%DOCKER_TAG% %DOCKER_REGISTRY%/user-service-ecommerce-boot:latest"
+                            bat "docker push %DOCKER_REGISTRY%/user-service-ecommerce-boot:latest"
                         }
                     }
                 }
                 stage('Build Product Service Image') {
                     steps {
                         dir('product-service') {
-                            script {
-                                def image = docker.build("${DOCKER_REGISTRY}/product-service-ecommerce-boot:${DOCKER_TAG}")
-                                docker.withRegistry('', 'docker-hub-credentials') {
-                                    image.push()
-                                    image.push('latest')
-                                }
-                            }
+                            bat "docker build -t %DOCKER_REGISTRY%/product-service-ecommerce-boot:%DOCKER_TAG% ."
+                            bat "docker push %DOCKER_REGISTRY%/product-service-ecommerce-boot:%DOCKER_TAG%"
+                            bat "docker tag %DOCKER_REGISTRY%/product-service-ecommerce-boot:%DOCKER_TAG% %DOCKER_REGISTRY%/product-service-ecommerce-boot:latest"
+                            bat "docker push %DOCKER_REGISTRY%/product-service-ecommerce-boot:latest"
                         }
                     }
                 }
                 stage('Build Order Service Image') {
                     steps {
                         dir('order-service') {
-                            script {
-                                def image = docker.build("${DOCKER_REGISTRY}/order-service-ecommerce-boot:${DOCKER_TAG}")
-                                docker.withRegistry('', 'docker-hub-credentials') {
-                                    image.push()
-                                    image.push('latest')
-                                }
-                            }
+                            bat "docker build -t %DOCKER_REGISTRY%/order-service-ecommerce-boot:%DOCKER_TAG% ."
+                            bat "docker push %DOCKER_REGISTRY%/order-service-ecommerce-boot:%DOCKER_TAG%"
+                            bat "docker tag %DOCKER_REGISTRY%/order-service-ecommerce-boot:%DOCKER_TAG% %DOCKER_REGISTRY%/order-service-ecommerce-boot:latest"
+                            bat "docker push %DOCKER_REGISTRY%/order-service-ecommerce-boot:latest"
                         }
                     }
                 }
                 stage('Build Payment Service Image') {
                     steps {
                         dir('payment-service') {
-                            script {
-                                def image = docker.build("${DOCKER_REGISTRY}/payment-service-ecommerce-boot:${DOCKER_TAG}")
-                                docker.withRegistry('', 'docker-hub-credentials') {
-                                    image.push()
-                                    image.push('latest')
-                                }
-                            }
+                            bat "docker build -t %DOCKER_REGISTRY%/payment-service-ecommerce-boot:%DOCKER_TAG% ."
+                            bat "docker push %DOCKER_REGISTRY%/payment-service-ecommerce-boot:%DOCKER_TAG%"
+                            bat "docker tag %DOCKER_REGISTRY%/payment-service-ecommerce-boot:%DOCKER_TAG% %DOCKER_REGISTRY%/payment-service-ecommerce-boot:latest"
+                            bat "docker push %DOCKER_REGISTRY%/payment-service-ecommerce-boot:latest"
                         }
                     }
                 }
                 stage('Build Favourite Service Image') {
                     steps {
                         dir('favourite-service') {
-                            script {
-                                def image = docker.build("${DOCKER_REGISTRY}/favourite-service-ecommerce-boot:${DOCKER_TAG}")
-                                docker.withRegistry('', 'docker-hub-credentials') {
-                                    image.push()
-                                    image.push('latest')
-                                }
-                            }
+                            bat "docker build -t %DOCKER_REGISTRY%/favourite-service-ecommerce-boot:%DOCKER_TAG% ."
+                            bat "docker push %DOCKER_REGISTRY%/favourite-service-ecommerce-boot:%DOCKER_TAG%"
+                            bat "docker tag %DOCKER_REGISTRY%/favourite-service-ecommerce-boot:%DOCKER_TAG% %DOCKER_REGISTRY%/favourite-service-ecommerce-boot:latest"
+                            bat "docker push %DOCKER_REGISTRY%/favourite-service-ecommerce-boot:latest"
                         }
                     }
                 }
                 stage('Build Proxy Client Image') {
                     steps {
                         dir('proxy-client') {
-                            script {
-                                def image = docker.build("${DOCKER_REGISTRY}/proxy-client-ecommerce-boot:${DOCKER_TAG}")
-                                docker.withRegistry('', 'docker-hub-credentials') {
-                                    image.push()
-                                    image.push('latest')
-                                }
-                            }
+                            bat "docker build -t %DOCKER_REGISTRY%/proxy-client-ecommerce-boot:%DOCKER_TAG% ."
+                            bat "docker push %DOCKER_REGISTRY%/proxy-client-ecommerce-boot:%DOCKER_TAG%"
+                            bat "docker tag %DOCKER_REGISTRY%/proxy-client-ecommerce-boot:%DOCKER_TAG% %DOCKER_REGISTRY%/proxy-client-ecommerce-boot:latest"
+                            bat "docker push %DOCKER_REGISTRY%/proxy-client-ecommerce-boot:latest"
                         }
                     }
                 }
                 stage('Build Cloud Config Image') {
                     steps {
                         dir('cloud-config') {
-                            script {
-                                def image = docker.build("${DOCKER_REGISTRY}/cloud-config-ecommerce-boot:${DOCKER_TAG}")
-                                docker.withRegistry('', 'docker-hub-credentials') {
-                                    image.push()
-                                    image.push('latest')
-                                }
-                            }
+                            bat "docker build -t %DOCKER_REGISTRY%/cloud-config-ecommerce-boot:%DOCKER_TAG% ."
+                            bat "docker push %DOCKER_REGISTRY%/cloud-config-ecommerce-boot:%DOCKER_TAG%"
+                            bat "docker tag %DOCKER_REGISTRY%/cloud-config-ecommerce-boot:%DOCKER_TAG% %DOCKER_REGISTRY%/cloud-config-ecommerce-boot:latest"
+                            bat "docker push %DOCKER_REGISTRY%/cloud-config-ecommerce-boot:latest"
                         }
                     }
                 }
                 stage('Build Service Discovery Image') {
                     steps {
                         dir('service-discovery') {
-                            script {
-                                def image = docker.build("${DOCKER_REGISTRY}/service-discovery-ecommerce-boot:${DOCKER_TAG}")
-                                docker.withRegistry('', 'docker-hub-credentials') {
-                                    image.push()
-                                    image.push('latest')
-                                }
-                            }
+                            bat "docker build -t %DOCKER_REGISTRY%/service-discovery-ecommerce-boot:%DOCKER_TAG% ."
+                            bat "docker push %DOCKER_REGISTRY%/service-discovery-ecommerce-boot:%DOCKER_TAG%"
+                            bat "docker tag %DOCKER_REGISTRY%/service-discovery-ecommerce-boot:%DOCKER_TAG% %DOCKER_REGISTRY%/service-discovery-ecommerce-boot:latest"
+                            bat "docker push %DOCKER_REGISTRY%/service-discovery-ecommerce-boot:latest"
                         }
                     }
                 }
