@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+    environment {
+        DOCKER_REGISTRY = 'alejomunoz'
+        DOCKER_TAG = "${env.BUILD_NUMBER}"
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Build Payment Service') {
+            steps {
+                dir('payment-service') {
+                    bat 'mvn clean package -DskipTests'
+                }
+            }
+        }
+        stage('Docker Build Payment Service') {
+            steps {
+                dir('payment-service') {
+                    bat "docker build -t %DOCKER_REGISTRY%/payment-service-ecommerce-boot:%DOCKER_TAG% ."
+                    bat "docker push %DOCKER_REGISTRY%/payment-service-ecommerce-boot:%DOCKER_TAG%"
+                    bat "docker tag %DOCKER_REGISTRY%/payment-service-ecommerce-boot:%DOCKER_TAG% %DOCKER_REGISTRY%/payment-service-ecommerce-boot:latest"
+                    bat "docker push %DOCKER_REGISTRY%/payment-service-ecommerce-boot:latest"
+                }
+            }
+        }
+        stage('Deploy to Dev Environment') {
+            steps {
+                bat 'echo "Deploying payment-service to development environment"'
+                bat 'docker-compose -f compose.yml up -d payment-service'
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo 'Payment Service deployed successfully!'
+        }
+        failure {
+            echo 'Deployment failed!'
+        }
+    }
+}

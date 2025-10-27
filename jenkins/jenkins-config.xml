@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jenkins>
+  <numExecutors>2</numExecutors>
+  <mode>NORMAL</mode>
+  <disableRememberMe>false</disableRememberMe>
+  <projectNamingStrategy class="jenkins.model.ProjectNamingStrategy$DefaultProjectNamingStrategy"/>
+  <authorizationStrategy class="hudson.security.FullControlOnceLoggedInAuthorizationStrategy">
+    <allowAnonymousRead>false</allowAnonymousRead>
+  </authorizationStrategy>
+  <securityRealm class="hudson.security.HudsonPrivateSecurityRealm">
+    <allowsSignup>true</allowsSignup>
+  </securityRealm>
+  <labelString></labelString>
+  <quietPeriod>5</quietPeriod>
+  <scmCheckoutRetryCount>2</scmCheckoutRetryCount>
+  <globalNodeProperties/>
+</jenkins>
