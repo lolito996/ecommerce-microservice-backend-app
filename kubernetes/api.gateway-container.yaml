@@ -27,20 +27,40 @@ spec:
               value: optional:configserver:http://cloud-config:9296/
             - name: SPRING_CLOUD_CONFIG_URI
               value: http://cloud-config:9296
+            - name: SPRING_CLOUD_CONFIG_ENABLED
+              value: "false"
+            # Precedencia y rutas del gateway
             - name: SPRING_CLOUD_CONFIG_ALLOW_OVERRIDE
               value: "true"
-            - name: SPRING_CLOUD_CONFIG_OVERRIDE_NONE
-              value: "true"
             - name: SPRING_CLOUD_CONFIG_OVERRIDE_SYSTEM_PROPERTIES
+              value: "true"
+            - name: SPRING_CLOUD_CONFIG_OVERRIDE_NONE
               value: "false"
-            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-              value: http://service-discovery:8761/eureka/
-            - name: EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE
-              value: http://service-discovery:8761/eureka/
+            # Deshabilitar discovery locator para controlar rutas explícitas
+            - name: SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_ENABLED
+              value: "false"
+            - name: SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_LOWER_CASE_SERVICE_ID
+              value: "true"
+            # Definir rutas estáticas que preservan endpoints originales
+            - name: SPRING_APPLICATION_JSON
+              value: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://service-discovery:8761/eureka/"}}},"spring":{"cloud":{"gateway":{"routes":[{"id":"app-to-product","uri":"lb://PRODUCT-SERVICE","predicates":["Path=/app/**"],"filters":["StripPrefix=1","PrefixPath=/product-service"]},{"id":"product-direct","uri":"lb://PRODUCT-SERVICE","predicates":["Path=/product-service/**"]},{"id":"user-direct","uri":"lb://USER-SERVICE","predicates":["Path=/user-service/**"]},{"id":"order-direct","uri":"lb://ORDER-SERVICE","predicates":["Path=/order-service/**"]},{"id":"shipping-direct","uri":"lb://SHIPPING-SERVICE","predicates":["Path=/shipping-service/**"]},{"id":"payment-direct","uri":"lb://PAYMENT-SERVICE","predicates":["Path=/payment-service/**"]},{"id":"favourite-direct","uri":"lb://FAVOURITE-SERVICE","predicates":["Path=/favourite-service/**"]}]}}}}'
             - name: EUREKA_CLIENT_REGISTER_WITH_EUREKA
               value: "true"
             - name: EUREKA_CLIENT_FETCH_REGISTRY
               value: "true"
+            # Registrar con la IP del Pod en Eureka (no localhost)
+            - name: EUREKA_INSTANCE_NON_SECURE_PORT
+              value: "8080"
+            - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+              value: "true"
+            - name: EUREKA_INSTANCE_IP_ADDRESS
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: EUREKA_INSTANCE_HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
 ---
 apiVersion: v1
 kind: Service

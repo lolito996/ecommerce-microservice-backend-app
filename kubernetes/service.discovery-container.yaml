@@ -1,3 +1,4 @@
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -23,8 +24,21 @@ spec:
               value: dev
             - name: SPRING_ZIPKIN_BASE_URL
               value: http://zipkin:9411
-            - name: SPRING_CONFIG_IMPORT
-              value: optional:configserver:http://cloud-config:9296/
+            # Desactivar Cloud Config remoto
+            - name: SPRING_CLOUD_CONFIG_ENABLED
+              value: "false"
+            # Configuración típica de Eureka Server standalone
+            - name: EUREKA_CLIENT_REGISTER_WITH_EUREKA
+              value: "false"
+            - name: EUREKA_CLIENT_FETCH_REGISTRY
+              value: "false"
+            # Forzar hostname/IP por claridad (opcional)
+            - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+              value: "true"
+            - name: EUREKA_INSTANCE_IP_ADDRESS
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
 ---
 apiVersion: v1
 kind: Service
@@ -38,5 +52,4 @@ spec:
     - name: http
       port: 8761
       targetPort: 8761
-      nodePort: 30861
-  type: NodePort
+  type: ClusterIP
