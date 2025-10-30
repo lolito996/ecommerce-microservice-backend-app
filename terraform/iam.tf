@@ -132,3 +132,4 @@ resource "aws_cloudwatch_log_group" "cloud_config" {
     Name = "${var.project_name}-cloud-config-logs"
   })
 }
+

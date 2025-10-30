@@ -178,3 +178,4 @@ Si encuentras problemas:
 2. Verifica el estado de los servicios en ECS
 3. Confirma que las imágenes están en ECR
 4. Valida las configuraciones de red y seguridad
+

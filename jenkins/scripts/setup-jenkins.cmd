@@ -1,54 +1,128 @@
 @echo off
-REM ================================================
+setlocal
+
+REM Jenkins bootstrap for ecommerce stack
 echo Setting up Jenkins for Ecommerce Microservices
-REM ================================================
 
-REM Crear directorio de trabajo
-if not exist jenkins-setup mkdir jenkins-setup
-cd jenkins-setup
+set "JENKINS_URL=http://localhost:8081"
+set "JENKINS_AUTH=admin:admin123"
 
-REM Descargar Jenkins CLI
+REM Resolve absolute paths regardless of invocation point
+set "SCRIPT_DIR=%~dp0"
+for %%i in ("%SCRIPT_DIR%..") do set "ROOT_DIR=%%~fi"
+set "SETUP_DIR=%SCRIPT_DIR%jenkins-setup"
+set "DEV_JOB_NAME=all-services-dev"
+set "STAGE_JOB_NAME=all-services-stage"
+set "DEV_JENKINSFILE=%ROOT_DIR%\pipelines\dev\all-services-dev.Jenkinsfile"
+set "STAGE_JENKINSFILE=%ROOT_DIR%\pipelines\stage\all-services-stage.Jenkinsfile"
+set "DEV_XML=%SETUP_DIR%\%DEV_JOB_NAME%-job.xml"
+set "STAGE_XML=%SETUP_DIR%\%STAGE_JOB_NAME%-job.xml"
+
+if not exist "%SETUP_DIR%" mkdir "%SETUP_DIR%"
+pushd "%SETUP_DIR%"
+
 echo Downloading Jenkins CLI...
-curl -o jenkins-cli.jar http://localhost:8081/jnlpJars/jenkins-cli.jar
+curl -f -L -o jenkins-cli.jar "%JENKINS_URL%/jnlpJars/jenkins-cli.jar"
+if errorlevel 1 (
+	echo Failed to download Jenkins CLI from %JENKINS_URL%.
+	popd
+	exit /b 1
+)
 
-REM Instalar plugins necesarios
 echo Installing Jenkins plugins...
-set plugins=docker-workflow kubernetes kubernetes-cli kubernetes-client-api pipeline-stage-view workflow-aggregator git maven-plugin htmlpublisher junit email-ext build-timeout credentials-binding timestamper ws-cleanup ant gradle pipeline-github-lib pipeline-stage-view pipeline-graph-analysis pipeline-input-step pipeline-milestone-step pipeline-model-definition pipeline-rest-api pipeline-stage-tags-metadata pipeline-utility-steps ssh-slaves matrix-auth pam-auth ldap mailer slack discord-notifier telegram-notifications matrix-project resource-disposer ssh-credentials plain-credentials credentials credentials-binding
+set plugins=docker-workflow kubernetes kubernetes-cli kubernetes-client-api pipeline-stage-view workflow-aggregator git maven-plugin junit email-ext build-timeout credentials-binding timestamper ws-cleanup pipeline-graph-analysis pipeline-input-step pipeline-milestone-step pipeline-model-definition pipeline-rest-api pipeline-stage-tags-metadata pipeline-utility-steps ssh-slaves matrix-auth pam-auth ldap mailer matrix-project resource-disposer ssh-credentials plain-credentials credentials
 for %%p in (%plugins%) do (
-    echo Installing plugin: %%p
-    java -jar jenkins-cli.jar -s http://localhost:8081 -auth admin:admin123 install-plugin "%%p" -deploy
+	echo Installing plugin: %%p
+	java -jar "%SETUP_DIR%\jenkins-cli.jar" -s %JENKINS_URL% -auth %JENKINS_AUTH% install-plugin "%%p" -deploy
+	if errorlevel 1 (
+		echo Failed installing plugin %%p. Check connectivity to updates.jenkins.io.
+		popd
+		exit /b 1
+	)
 )
-echo All plugins installed successfully!
-echo Please restart Jenkins to complete the installation if required.
 
-REM Crear jobs centralizados de dev y stage
-REM ================================================
-set "JENKINSFILE_DEV=..\pipelines\dev\all-services-dev.Jenkinsfile"
-set "XML_FILE_DEV=all-services-dev-job.xml"
-if exist %JENKINSFILE_DEV% (
-    echo Generando XML para all-services-dev ...
-    echo ^<?xml version="1.0" encoding="UTF-8"?^>^<flow-definition plugin="workflow-job@2.42"^>^<description^>Pipeline job for all-services-dev^</description^>^<keepDependencies^>false^</keepDependencies^>^<properties/^>^<definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@2.90"^>^<scm class="hudson.plugins.git.GitSCM" plugin="git@4.8.3"^>^<configVersion^>2^</configVersion^>^<userRemoteConfigs^>^<hudson.plugins.git.UserRemoteConfig^>^<url^>https://github.com/lolito996/ecommerce-microservice-backend-app.git^</url^>^</hudson.plugins.git.UserRemoteConfig^>^</userRemoteConfigs^>^<branches^>^<hudson.plugins.git.BranchSpec^>^<name^>*/kubernetes^</name^>^</hudson.plugins.git.BranchSpec^>^</branches^>^<doGenerateSubmoduleConfigurations^>false^</doGenerateSubmoduleConfigurations^>^<submoduleCfg class="list"^>^</submoduleCfg^>^<extensions/^>^</scm^>^<scriptPath^>jenkins/pipelines/dev/all-services-dev.Jenkinsfile^</scriptPath^>^<lightweight^>true^</lightweight^>^</definition^>^<triggers/^>^<disabled^>false^</disabled^>^</flow-definition^> > %XML_FILE_DEV%
-    echo Creando job all-services-dev en Jenkins ...
-    java -jar jenkins-cli.jar -s http://localhost:8081 -auth admin:admin123 create-job "all-services-dev" < %XML_FILE_DEV%
+REM Remove optional plugins that generate security warnings
+set removePlugins=htmlpublisher slack discord-notifier telegram-notifications ant gradle pipeline-github-lib
+for %%p in (%removePlugins%) do (
+	echo Removing optional plugin: %%p
+	java -jar "%SETUP_DIR%\jenkins-cli.jar" -s %JENKINS_URL% -auth %JENKINS_AUTH% uninstall-plugin "%%p" || echo "Plugin %%p could not be removed (may not be installed)."
+)
+
+REM Generate and post pipeline jobs
+if exist "%DEV_JENKINSFILE%" (
+	(
+		echo ^<?xml version="1.0" encoding="UTF-8"?^>
+		echo ^<flow-definition plugin="workflow-job@2.42"^>
+		echo   ^<description^>Pipeline job for %DEV_JOB_NAME%^</description^>
+		echo   ^<keepDependencies^>false^</keepDependencies^>
+		echo   ^<properties/^>
+		echo   ^<definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@2.90"^>
+		echo     ^<scm class="hudson.plugins.git.GitSCM" plugin="git@4.8.3"^>
+		echo       ^<configVersion^>2^</configVersion^>
+		echo       ^<userRemoteConfigs^>
+		echo         ^<hudson.plugins.git.UserRemoteConfig^>
+		echo           ^<url^>https://github.com/lolito996/ecommerce-microservice-backend-app.git^</url^>
+		echo         ^</hudson.plugins.git.UserRemoteConfig^>
+		echo       ^</userRemoteConfigs^>
+		echo       ^<branches^>
+		echo         ^<hudson.plugins.git.BranchSpec^>
+		echo           ^<name^>*/kubernetes^</name^>
+		echo         ^</hudson.plugins.git.BranchSpec^>
+		echo       ^</branches^>
+		echo       ^<doGenerateSubmoduleConfigurations^>false^</doGenerateSubmoduleConfigurations^>
+		echo       ^<submoduleCfg class="list"/^>
+		echo       ^<extensions/^>
+		echo     ^</scm^>
+		echo     ^<scriptPath^>jenkins/pipelines/dev/all-services-dev.Jenkinsfile^</scriptPath^>
+		echo     ^<lightweight^>true^</lightweight^>
+		echo   ^</definition^>
+		echo   ^<triggers/^>
+		echo   ^<disabled^>false^</disabled^>
+		echo ^</flow-definition^>
+	) > "%DEV_XML%"
+	echo Creating job %DEV_JOB_NAME% ...
+	java -jar "%SETUP_DIR%\jenkins-cli.jar" -s %JENKINS_URL% -auth %JENKINS_AUTH% create-job "%DEV_JOB_NAME%" < "%DEV_XML%"
 ) else (
-    echo El archivo %JENKINSFILE_DEV% no existe, se omite all-services-dev
+	echo Jenkinsfile not found: %DEV_JENKINSFILE%
 )
 
-set "JENKINSFILE_STAGE=..\pipelines\stage\all-services-stage.Jenkinsfile"
-set "XML_FILE_STAGE=all-services-stage-job.xml"
-if exist %JENKINSFILE_STAGE% (
-    echo Generando XML para all-services-stage ...
-    echo ^<?xml version="1.0" encoding="UTF-8"?^>^<flow-definition plugin="workflow-job@2.42"^>^<description^>Pipeline job for all-services-stage^</description^>^<keepDependencies^>false^</keepDependencies^>^<properties/^>^<definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@2.90"^>^<scm class="hudson.plugins.git.GitSCM" plugin="git@4.8.3"^>^<configVersion^>2^</configVersion^>^<userRemoteConfigs^>^<hudson.plugins.git.UserRemoteConfig^>^<url^>https://github.com/lolito996/ecommerce-microservice-backend-app.git^</url^>^</hudson.plugins.git.UserRemoteConfig^>^</userRemoteConfigs^>^<branches^>^<hudson.plugins.git.BranchSpec^>^<name^>*/kubernetes^</name^>^</hudson.plugins.git.BranchSpec^>^</branches^>^<doGenerateSubmoduleConfigurations^>false^</doGenerateSubmoduleConfigurations^>^<submoduleCfg class="list"^>^</submoduleCfg^>^<extensions/^>^</scm^>^<scriptPath^>jenkins/pipelines/stage/all-services-stage.Jenkinsfile^</scriptPath^>^<lightweight^>true^</lightweight^>^</definition^>^<triggers/^>^<disabled^>false^</disabled^>^</flow-definition^> > %XML_FILE_STAGE%
-    echo Creando job all-services-stage en Jenkins ...
-    java -jar jenkins-cli.jar -s http://localhost:8081 -auth admin:admin123 create-job "all-services-stage" < %XML_FILE_STAGE%
+if exist "%STAGE_JENKINSFILE%" (
+	(
+		echo ^<?xml version="1.0" encoding="UTF-8"?^>
+		echo ^<flow-definition plugin="workflow-job@2.42"^>
+		echo   ^<description^>Pipeline job for %STAGE_JOB_NAME%^</description^>
+		echo   ^<keepDependencies^>false^</keepDependencies^>
+		echo   ^<properties/^>
+		echo   ^<definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@2.90"^>
+		echo     ^<scm class="hudson.plugins.git.GitSCM" plugin="git@4.8.3"^>
+		echo       ^<configVersion^>2^</configVersion^>
+		echo       ^<userRemoteConfigs^>
+		echo         ^<hudson.plugins.git.UserRemoteConfig^>
+		echo           ^<url^>https://github.com/lolito996/ecommerce-microservice-backend-app.git^</url^>
+		echo         ^</hudson.plugins.git.UserRemoteConfig^>
+		echo       ^</userRemoteConfigs^>
+		echo       ^<branches^>
+		echo         ^<hudson.plugins.git.BranchSpec^>
+		echo           ^<name^>*/kubernetes^</name^>
+		echo         ^</hudson.plugins.git.BranchSpec^>
+		echo       ^</branches^>
+		echo       ^<doGenerateSubmoduleConfigurations^>false^</doGenerateSubmoduleConfigurations^>
+		echo       ^<submoduleCfg class="list"/^>
+		echo       ^<extensions/^>
+		echo     ^</scm^>
+		echo     ^<scriptPath^>jenkins/pipelines/stage/all-services-stage.Jenkinsfile^</scriptPath^>
+		echo     ^<lightweight^>true^</lightweight^>
+		echo   ^</definition^>
+		echo   ^<triggers/^>
+		echo   ^<disabled^>false^</disabled^>
+		echo ^</flow-definition^>
+	) > "%STAGE_XML%"
+	echo Creating job %STAGE_JOB_NAME% ...
+	java -jar "%SETUP_DIR%\jenkins-cli.jar" -s %JENKINS_URL% -auth %JENKINS_AUTH% create-job "%STAGE_JOB_NAME%" < "%STAGE_XML%"
 ) else (
-    echo El archivo %JENKINSFILE_STAGE% no existe, se omite all-services-stage
+	echo Jenkinsfile not found: %STAGE_JENKINSFILE%
 )
 
-REM ================================================
-echo Jenkins setup completed!
-echo ================================================
-echo Access Jenkins at: http://localhost:8081
-echo Username: admin
-echo Password: admin123
-echo ================================================
+popd
+echo Jenkins setup finished.
+exit /b 0

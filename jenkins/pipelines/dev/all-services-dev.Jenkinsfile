@@ -3,12 +3,12 @@ pipeline {
     parameters {
         booleanParam(name: 'FORCE_ALL', defaultValue: false, description: 'Force build of all services')
     }
+    tools {
+        maven 'Maven-3.8.6'
+    }
     environment {
         DOCKER_TAG = "${env.BUILD_NUMBER}"
         KUBERNETES_NAMESPACE = 'ecommerce-dev'
-    }
-    tools {
-        maven 'Maven-3.8.6'
     }
     stages {
         stage('Checkout') {
@@ -27,7 +27,10 @@ pipeline {
                     } else {
                         // Try to detect an appropriate base branch (dev, master, main) and diff against it
                         sh 'git fetch origin --depth=1 || true'
-                        def changed = sh(returnStdout: true, script: "bash -lc 'for b in dev master main; do if git ls-remote --heads origin $b | grep $b >/dev/null 2>&1; then echo $b; break; fi; done' ").trim()
+                                def changed = sh(
+                                    returnStdout: true,
+                                    script: """bash -lc 'for br in dev master main; do if git ls-remote --heads origin ${'$'}br >/dev/null 2>&1; then echo ${'$'}br; break; fi; done'"""
+                                ).trim()
                         if (changed) {
                             def base = "origin/${changed}"
                             echo "Using base branch ${base} for diff"
@@ -59,7 +62,7 @@ pipeline {
                         def svc = s
                         buildStages["build-${svc}"] = {
                             dir(svc) {
-                                sh "mvn clean package -DskipTests || echo 'Build failed for ${svc}, continuing...'"
+                                sh "mvn -B -e -DskipTests clean package"
                             }
                         }
                     }
@@ -73,7 +76,7 @@ pipeline {
                     def toTest = env.TO_BUILD.tokenize(',') as List
                     for (s in toTest) {
                         dir(s) {
-                            sh "echo 'Running unit tests for ${s}'; mvn test || echo 'Unit tests failed for ${s}, continuing...'"
+                            sh "echo 'Running unit tests for ${s}'; mvn -B -e test"
                         }
                     }
                 }
@@ -111,9 +114,9 @@ pipeline {
         stage('Deploy to Dev (docker-compose)') {
             steps {
                 sh 'echo "Deploying selected services to development environment (docker-compose)..."'
-                sh 'docker-compose -f compose.yml up -d || echo "Docker compose failed, continuing..."'
+                sh 'docker-compose -f compose.yml up -d'
                 sh 'sleep 30'
-                sh 'docker ps || echo "Docker ps failed"'
+                sh 'docker ps'
             }
         }
         stage('Integration Tests (selected)') {
@@ -122,7 +125,7 @@ pipeline {
                     def toTest = env.TO_BUILD.tokenize(',') as List
                     for (s in toTest) {
                         dir(s) {
-                            sh "echo 'Running integration tests for ${s}'; mvn test -Dtest=*IntegrationTest || echo 'Integration tests failed for ${s}, continuing...'"
+                            sh "echo 'Running integration tests for ${s}'; mvn -B -e -Dtest=*IT,*IntegrationTest test"
                         }
                     }
                 }
@@ -134,7 +137,7 @@ pipeline {
                     def toTest = env.TO_BUILD.tokenize(',') as List
                     for (s in toTest) {
                         dir(s) {
-                            sh "echo 'Running E2E tests for ${s} (if present)'; mvn test -Dtest=E2ETestSuite || echo 'E2E tests (E2ETestSuite) not present or failed for ${s}, continuing...'"
+                            sh "echo 'Running E2E tests for ${s} (if present)'; mvn -B -e -Dtest=**/*E2E* test"
                         }
                     }
                 }
@@ -142,7 +145,14 @@ pipeline {
         }
     }
     post {
-        always { echo 'Pipeline execution completed' }
+        always {
+            echo 'Publishing test results and artifacts'
+            script {
+                junit allowEmptyResults: true, testResults: '**/surefire-reports/*.xml, **/failsafe-reports/*.xml'
+                archiveArtifacts artifacts: 'jenkins/locust/locust_report/**', allowEmptyArchive: true, fingerprint: true
+            }
+            echo 'Pipeline execution completed'
+        }
         success { echo 'All services deployed successfully!' }
         failure { echo 'Deployment failed!' }
     }

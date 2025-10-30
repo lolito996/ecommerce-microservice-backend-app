@@ -128,3 +128,4 @@ resource "aws_ecr_repository" "cloud_config" {
     Name = "${var.project_name}-cloud-config-repo"
   })
 }
+

@@ -60,3 +60,4 @@ logging:
         type: size
         maxFileSize: 10MB
         maxHistory: 10
+

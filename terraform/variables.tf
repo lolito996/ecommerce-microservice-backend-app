@@ -46,3 +46,4 @@ output "ecr_repositories" {
     cloud_config     = aws_ecr_repository.cloud_config.repository_url
   }
 }
+

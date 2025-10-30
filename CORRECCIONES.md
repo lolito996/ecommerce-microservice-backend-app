@@ -53,3 +53,4 @@ bash Scripts/stop-k8s.sh
 - Usa `compose-local.yml` para levantar los servicios localmente.
 
 ---
+

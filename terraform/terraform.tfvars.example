@@ -5,3 +5,4 @@ aws_region   = "us-east-1"
 environment  = "prod"
 project_name = "ecommerce-microservices"
 db_password  = "your-secure-database-password"
+

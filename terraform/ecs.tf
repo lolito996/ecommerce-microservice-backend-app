@@ -187,3 +187,4 @@ resource "aws_ecs_service" "proxy_client" {
     Name = "${var.project_name}-proxy-client-service"
   })
 }
+
