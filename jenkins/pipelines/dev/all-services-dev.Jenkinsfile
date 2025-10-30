@@ -27,10 +27,7 @@ pipeline {
                     } else {
                         // Try to detect an appropriate base branch (dev, master, main) and diff against it
                         sh 'git fetch origin --depth=1 || true'
-                                def changed = sh(
-                                    returnStdout: true,
-                                    script: """bash -lc 'for br in dev master main; do if git ls-remote --heads origin ${'$'}br >/dev/null 2>&1; then echo ${'$'}br; break; fi; done'"""
-                                ).trim()
+                        def changed = sh(returnStdout: true, script: "bash -lc 'for br in dev master main; do if git ls-remote --heads origin \\${br} | grep \\${br} >/dev/null 2>&1; then echo \\${br}; break; fi; done'").trim()
                         if (changed) {
                             def base = "origin/${changed}"
                             echo "Using base branch ${base} for diff"
