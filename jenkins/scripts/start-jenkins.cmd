@@ -25,13 +25,10 @@ REM Verificar que Jenkins está corriendo
 curl -s http://localhost:8081 >nul 2>&1
 if %errorlevel% equ 0 (
     echo ✅ Jenkins is running at http://localhost:8081
-    echo 👤 Username: admin
-    echo 🔑 Password: admin123
     echo ================================================
     echo Next steps:
     echo 1. Access Jenkins at http://localhost:8081
-    echo 2. Run: install-plugins.cmd
-    echo 3. Run: create-jobs.cmd
+    echo 2. Run: setup-jenkins.cmd
     echo ================================================
 ) else (
     echo ❌ Jenkins failed to start. Check logs with: docker logs jenkins

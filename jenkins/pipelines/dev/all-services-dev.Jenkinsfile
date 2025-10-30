@@ -25,8 +25,17 @@ pipeline {
                         toBuild = services
                         echo "FORCE_ALL set -> building all services: ${toBuild}"
                     } else {
-                        sh 'git fetch origin main --depth=1 || true'
-                        def changed = sh(returnStdout: true, script: "git diff --name-only origin/main...HEAD || git diff --name-only HEAD~1..HEAD").trim()
+                        // Try to detect an appropriate base branch (dev, master, main) and diff against it
+                        sh 'git fetch origin --depth=1 || true'
+                        def changed = sh(returnStdout: true, script: "bash -lc 'for b in dev master main; do if git ls-remote --heads origin $b | grep $b >/dev/null 2>&1; then echo $b; break; fi; done' ").trim()
+                        if (changed) {
+                            def base = "origin/${changed}"
+                            echo "Using base branch ${base} for diff"
+                            changed = sh(returnStdout: true, script: "git diff --name-only ${base}...HEAD || true").trim()
+                        } else {
+                            echo 'No remote dev/master/main found, falling back to last commit diff'
+                            changed = sh(returnStdout: true, script: "git diff --name-only HEAD~1..HEAD || true").trim()
+                        }
                         if (changed) {
                             def dirs = changed.split('\n').collect{ it.split('/')[0] }.unique()
                             toBuild = services.findAll { s -> dirs.contains(s) }
