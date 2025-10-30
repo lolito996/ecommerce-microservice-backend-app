@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    parameters {
+        booleanParam(name: 'FORCE_ALL', defaultValue: false, description: 'Force build of all services')
+    }
     environment {
         DOCKER_TAG = "${env.BUILD_NUMBER}"
         KUBERNETES_NAMESPACE = 'ecommerce-stage'
@@ -13,72 +16,131 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Build All Services') {
-            parallel {
-                stage('Build User Service') {
-                    steps { dir('user-service') { sh 'mvn clean package -DskipTests || echo "Build failed, continuing..."' } } }
-                stage('Build Product Service') {
-                    steps { dir('product-service') { sh 'mvn clean package -DskipTests || echo "Build failed, continuing..."' } } }
-                stage('Build Order Service') {
-                    steps { dir('order-service') { sh 'mvn clean package -DskipTests || echo "Build failed, continuing..."' } } }
-                stage('Build Payment Service') {
-                    steps { dir('payment-service') { sh 'mvn clean package -DskipTests || echo "Build failed, continuing..."' } } }
-                stage('Build Favourite Service') {
-                    steps { dir('favourite-service') { sh 'mvn clean package -DskipTests || echo "Build failed, continuing..."' } } }
-                stage('Build Proxy Client') {
-                    steps { dir('proxy-client') { sh 'mvn clean package -DskipTests || echo "Build failed, continuing..."' } } }
-            }
-        }
-        stage('Unit Tests All Services') {
-            parallel {
-                stage('User Service Tests') {
-                    steps { dir('user-service') { sh 'mvn test || echo "Tests failed, continuing..."' } } }
-                stage('Product Service Tests') {
-                    steps { dir('product-service') { sh 'mvn test || echo "Tests failed, continuing..."' } } }
-                stage('Order Service Tests') {
-                    steps { dir('order-service') { sh 'mvn test || echo "Tests failed, continuing..."' } } }
-                stage('Payment Service Tests') {
-                    steps { dir('payment-service') { sh 'mvn test || echo "Tests failed, continuing..."' } } }
-                stage('Favourite Service Tests') {
-                    steps { dir('favourite-service') { sh 'mvn test || echo "Tests failed, continuing..."' } } }
-                stage('Proxy Client Tests') {
-                    steps { dir('proxy-client') { sh 'mvn test || echo "Tests failed, continuing..."' } } }
-            }
-        }
-        stage('Docker Build All Services') {
-            parallel {
-                stage('Build User Service Image') {
-                    steps { dir('user-service') { script { try { def image = docker.build("selimhorri/user-service-ecommerce-boot:${DOCKER_TAG}"); docker.withRegistry('', 'docker-hub-credentials') { image.push(); image.push('latest') }; echo "User service image built and pushed successfully" } catch (Exception e) { echo "Docker build/push failed for user-service: ${e.getMessage()}" } } } } }
-                stage('Build Product Service Image') {
-                    steps { dir('product-service') { script { try { def image = docker.build("selimhorri/product-service-ecommerce-boot:${DOCKER_TAG}"); docker.withRegistry('', 'docker-hub-credentials') { image.push(); image.push('latest') }; echo "Product service image built and pushed successfully" } catch (Exception e) { echo "Docker build/push failed for product-service: ${e.getMessage()}" } } } } }
-                stage('Build Order Service Image') {
-                    steps { dir('order-service') { script { try { def image = docker.build("selimhorri/order-service-ecommerce-boot:${DOCKER_TAG}"); docker.withRegistry('', 'docker-hub-credentials') { image.push(); image.push('latest') }; echo "Order service image built and pushed successfully" } catch (Exception e) { echo "Docker build/push failed for order-service: ${e.getMessage()}" } } } } }
-                stage('Build Payment Service Image') {
-                    steps { dir('payment-service') { script { try { def image = docker.build("selimhorri/payment-service-ecommerce-boot:${DOCKER_TAG}"); docker.withRegistry('', 'docker-hub-credentials') { image.push(); image.push('latest') }; echo "Payment service image built and pushed successfully" } catch (Exception e) { echo "Docker build/push failed for payment-service: ${e.getMessage()}" } } } } }
-                stage('Build Favourite Service Image') {
-                    steps { dir('favourite-service') { script { try { def image = docker.build("selimhorri/favourite-service-ecommerce-boot:${DOCKER_TAG}"); docker.withRegistry('', 'docker-hub-credentials') { image.push(); image.push('latest') }; echo "Favourite service image built and pushed successfully" } catch (Exception e) { echo "Docker build/push failed for favourite-service: ${e.getMessage()}" } } } } }
-                stage('Build Proxy Client Image') {
-                    steps { dir('proxy-client') { script { try { def image = docker.build("selimhorri/proxy-client-ecommerce-boot:${DOCKER_TAG}"); docker.withRegistry('', 'docker-hub-credentials') { image.push(); image.push('latest') }; echo "Proxy client image built and pushed successfully" } catch (Exception e) { echo "Docker build/push failed for proxy-client: ${e.getMessage()}" } } } } }
-            }
-        }
-        stage('Deploy All Services to Stage') {
+        stage('Detect changed services') {
             steps {
-                sh 'echo "Deploying all services to stage environment..."'
-                sh 'docker-compose -f compose.stage.yml up -d || echo "Docker compose failed, continuing..."'
-                sh 'sleep 30'
-                sh 'docker ps || echo "Docker ps failed"'
+                script {
+                    def services = ['user-service','product-service','order-service','payment-service','favourite-service','proxy-client']
+                    def toBuild = []
+                    if (params.FORCE_ALL.toString() == 'true') {
+                        toBuild = services
+                        echo "FORCE_ALL set -> building all services: ${toBuild}"
+                    } else {
+                        sh 'git fetch origin main --depth=1 || true'
+                        def changed = sh(returnStdout: true, script: "git diff --name-only origin/main...HEAD || git diff --name-only HEAD~1..HEAD").trim()
+                        if (changed) {
+                            def dirs = changed.split('\n').collect{ it.split('/')[0] }.unique()
+                            toBuild = services.findAll { s -> dirs.contains(s) }
+                            echo "Changed directories from git: ${dirs} -> will build: ${toBuild}"
+                        } else {
+                            echo "No changed files detected; defaulting to build all services"
+                            toBuild = services
+                        }
+                    }
+                    if (!toBuild) { toBuild = services }
+                    env.TO_BUILD = toBuild.join(',')
+                }
             }
         }
-        stage('Integration Tests') {
+        stage('Build Selected Services') {
             steps {
-                sh 'echo "Running integration tests..."'
-                sh 'mvn test -Dtest=*IntegrationTest || echo "Integration tests failed, continuing..."'
+                script {
+                    def toBuild = env.TO_BUILD.tokenize(',') as List
+                    def buildStages = [:]
+                    for (s in toBuild) {
+                        def svc = s
+                        buildStages["build-${svc}"] = {
+                            dir(svc) {
+                                sh "mvn clean package -DskipTests || echo 'Build failed for ${svc}, continuing...'"
+                            }
+                        }
+                    }
+                    parallel buildStages
+                }
             }
         }
-        stage('E2E Tests') {
+        stage('Unit Tests (selected services)') {
             steps {
-                sh 'echo "Running E2E tests..."'
-                sh 'mvn test -Dtest=E2ETestSuite || echo "E2E tests failed, continuing..."'
+                script {
+                    def toTest = env.TO_BUILD.tokenize(',') as List
+                    for (s in toTest) {
+                        dir(s) {
+                            sh "echo 'Running unit tests for ${s}'; mvn test || echo 'Unit tests failed for ${s}, continuing...'"
+                        }
+                    }
+                }
+            }
+        }
+        stage('Docker Build & Push (selected)') {
+            steps {
+                script {
+                    def toBuild = env.TO_BUILD.tokenize(',') as List
+                    def buildStages = [:]
+                    for (s in toBuild) {
+                        def svc = s
+                        buildStages["docker-${svc}"] = {
+                            dir(svc) {
+                                script {
+                                    try {
+                                        def imageName = "selimhorri/${svc}-ecommerce-boot:${DOCKER_TAG}"
+                                        echo "Building image ${imageName}"
+                                        def image = docker.build(imageName)
+                                        docker.withRegistry('', 'docker-hub-credentials') {
+                                            image.push()
+                                            echo "Pushed ${imageName}"
+                                        }
+                                    } catch (Exception e) {
+                                        echo "Docker build/push failed for ${svc}: ${e.getMessage()}"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    parallel buildStages
+                }
+            }
+        }
+        stage('Deploy to Kubernetes (stage)') {
+            steps {
+                script {
+                    echo 'Applying Kubernetes manifests from kubernetes/ to cluster (Docker Desktop K8s)'
+                    sh 'kubectl apply -f kubernetes/ --namespace ${KUBERNETES_NAMESPACE} || true'
+                    echo 'Waiting for pods to be ready (up to 3 minutes)'
+                    sh 'kubectl wait --for=condition=ready pods --all --namespace ${KUBERNETES_NAMESPACE} --timeout=180s || true'
+                    sh 'kubectl get pods --namespace ${KUBERNETES_NAMESPACE} -o wide || true'
+                }
+            }
+        }
+        stage('Integration Tests (against cluster)') {
+            steps {
+                script {
+                    def toTest = env.TO_BUILD.tokenize(',') as List
+                    for (s in toTest) {
+                        dir(s) {
+                            sh "echo 'Running integration tests for ${s} against cluster'; mvn test -Dtest=*IntegrationTest || echo 'Integration tests failed for ${s}, continuing...'"
+                        }
+                    }
+                }
+            }
+        }
+        stage('E2E Tests (against cluster)') {
+            steps {
+                script {
+                    def toTest = env.TO_BUILD.tokenize(',') as List
+                    for (s in toTest) {
+                        dir(s) {
+                            sh "echo 'Running E2E tests for ${s} (if present) against cluster'; mvn test -Dtest=E2ETestSuite || echo 'E2E tests not present or failed for ${s}, continuing...'"
+                        }
+                    }
+                }
+            }
+        }
+        stage('Performance: Locust (basic)') {
+            steps {
+                script {
+                    sh 'python3 -m pip install --user locust -q || true'
+                    sh 'echo "Running Locust headless (1m, 50 users) against http://localhost:8080 (adjust host as needed)"'
+                    sh 'python3 -m locust -f jenkins/locust/locustfile.py --headless -u 50 -r 5 -t 1m --host http://localhost:8080 || echo "Locust finished or failed"'
+                }
             }
         }
     }

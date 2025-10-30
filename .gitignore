@@ -33,4 +33,4 @@ build/
 .vscode/
 
 
-jenkins/jenkins_home/
+jenkins/jenkins-setup
