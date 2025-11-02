@@ -3,14 +3,12 @@ pipeline {
     parameters {
         booleanParam(name: 'FORCE_ALL', defaultValue: false, description: 'Force build of all services')
     }
-    environment {
-        DOCKER_TAG = "${env.BUILD_NUMBER}"
-        KUBERNETES_NAMESPACE = 'ecommerce-stage'
-    }
     tools {
         maven 'Maven-3.8.6'
     }
     environment {
+        DOCKER_TAG = "${env.BUILD_NUMBER}"
+        KUBERNETES_NAMESPACE = 'ecommerce-stage'
         MAVEN_OPTS = "-Dhttps.protocols=TLSv1.2,TLSv1.3 -Dmaven.wagon.http.retryHandler.count=5 -Dmaven.wagon.http.connectionTimeout=60000 -Dmaven.wagon.http.readTimeout=600000 -Dmaven.wagon.http.pool=false"
     }
     stages {
@@ -171,16 +169,18 @@ pipeline {
                 }
             }
         }
+        stage('Publish Test Results') {
+            steps {
+                script {
+                    echo 'Publishing test results and artifacts (stage)'
+                    junit allowEmptyResults: true, testResults: '**/surefire-reports/*.xml, **/failsafe-reports/*.xml'
+                    archiveArtifacts artifacts: 'jenkins/locust/locust_report/**', allowEmptyArchive: true, fingerprint: true
+                    echo 'Pipeline execution completed'
+                }
+            }
+        }
     }
     post {
-        always {
-            echo 'Publishing test results and artifacts (stage)'
-            script {
-                junit allowEmptyResults: true, testResults: '**/surefire-reports/*.xml, **/failsafe-reports/*.xml'
-                archiveArtifacts artifacts: 'jenkins/locust/locust_report/**', allowEmptyArchive: true, fingerprint: true
-            }
-            echo 'Pipeline execution completed'
-        }
         success { echo 'All services deployed successfully to stage!' }
         failure { echo 'Deployment to stage failed!' }
     }
