@@ -12,6 +12,15 @@ pipeline {
         MAVEN_OPTS = "-Dhttps.protocols=TLSv1.2,TLSv1.3 -Dmaven.wagon.http.retryHandler.count=5 -Dmaven.wagon.http.connectionTimeout=60000 -Dmaven.wagon.http.readTimeout=600000 -Dmaven.wagon.http.pool=false"
     }
     stages {
+        stage('Clean workspace') {
+            steps {
+                script {
+                    // Ensure a clean workspace to avoid stale artifacts causing docker build failures
+                    deleteDir()
+                    echo 'Workspace cleaned.'
+                }
+            }
+        }
         stage('Checkout') {
             steps {
                 checkout scm
@@ -94,24 +103,32 @@ pipeline {
         stage('Docker Build & Push (selected)') {
             steps {
                 script {
+                    // Build images using the repository root as build context so Dockerfiles that
+                    // reference paths like "product-service/target/..." can find the artifacts.
                     def toBuild = env.TO_BUILD.tokenize(',') as List
                     def buildStages = [:]
                     for (s in toBuild) {
                         def svc = s
                         buildStages["docker-${svc}"] = {
-                            dir(svc) {
-                                script {
-                                    try {
-                                        def imageName = "selimhorri/${svc}-ecommerce-boot:${DOCKER_TAG}"
-                                        echo "Building image ${imageName}"
-                                        def image = docker.build(imageName)
-                                        docker.withRegistry('', 'docker-hub-credentials') {
-                                            image.push()
-                                            echo "Pushed ${imageName}"
-                                        }
-                                    } catch (Exception e) {
-                                        error "Docker build/push failed for ${svc}: ${e.getMessage()}"
+                            script {
+                                try {
+                                    def imageName = "selimhorri/${svc}-ecommerce-boot:${DOCKER_TAG}"
+                                    echo "Checking for built jar(s) under ${env.WORKSPACE}/${svc}/target/"
+                                    def found = sh(returnStdout: true, script: "bash -lc 'ls ${env.WORKSPACE}/${svc}/target/*.jar 2>/dev/null || true'").trim()
+                                    if (!found) {
+                                        error "Artifact not found for ${svc}: looked for jars in ${env.WORKSPACE}/${svc}/target/. Ensure 'mvn package' ran successfully."
                                     }
+                                    echo "Found artifact(s): ${found}"
+                                    echo "Building image ${imageName} using Dockerfile ${svc}/Dockerfile and workspace as context"
+                                    // Use the repo root as context and point to the service Dockerfile explicitly.
+                                    def buildArgs = "-f ${svc}/Dockerfile ${env.WORKSPACE}"
+                                    def image = docker.build(imageName, buildArgs)
+                                    docker.withRegistry('', 'docker-hub-credentials') {
+                                        image.push()
+                                        echo "Pushed ${imageName}"
+                                    }
+                                } catch (Exception e) {
+                                    error "Docker build/push failed for ${svc}: ${e.getMessage()}"
                                 }
                             }
                         }

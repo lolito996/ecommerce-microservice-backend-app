@@ -82,6 +82,17 @@ if exist "%DEV_JENKINSFILE%" (
 	) > "%DEV_XML%"
 	echo Creating job %DEV_JOB_NAME% ...
 	java -jar "%SETUP_DIR%\jenkins-cli.jar" -s %JENKINS_URL% -auth %JENKINS_AUTH% create-job "%DEV_JOB_NAME%" < "%DEV_XML%"
+	if errorlevel 1 (
+		echo Job %DEV_JOB_NAME% may already exist; attempting to update it instead...
+		java -jar "%SETUP_DIR%\jenkins-cli.jar" -s %JENKINS_URL% -auth %JENKINS_AUTH% update-job "%DEV_JOB_NAME%" < "%DEV_XML%"
+		if errorlevel 1 (
+			echo Failed to create or update %DEV_JOB_NAME%. Check Jenkins logs.
+		) else (
+			echo Job %DEV_JOB_NAME% updated.
+		)
+	) else (
+		echo Job %DEV_JOB_NAME% created.
+	)
 ) else (
 	echo Jenkinsfile not found: %DEV_JENKINSFILE%
 )
@@ -119,6 +130,17 @@ if exist "%STAGE_JENKINSFILE%" (
 	) > "%STAGE_XML%"
 	echo Creating job %STAGE_JOB_NAME% ...
 	java -jar "%SETUP_DIR%\jenkins-cli.jar" -s %JENKINS_URL% -auth %JENKINS_AUTH% create-job "%STAGE_JOB_NAME%" < "%STAGE_XML%"
+	if errorlevel 1 (
+		echo Job %STAGE_JOB_NAME% may already exist; attempting to update it instead...
+		java -jar "%SETUP_DIR%\jenkins-cli.jar" -s %JENKINS_URL% -auth %JENKINS_AUTH% update-job "%STAGE_JOB_NAME%" < "%STAGE_XML%"
+		if errorlevel 1 (
+			echo Failed to create or update %STAGE_JOB_NAME%. Check Jenkins logs.
+		) else (
+			echo Job %STAGE_JOB_NAME% updated.
+		)
+	) else (
+		echo Job %STAGE_JOB_NAME% created.
+	)
 ) else (
 	echo Jenkinsfile not found: %STAGE_JENKINSFILE%
 )

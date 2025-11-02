@@ -104,3 +104,29 @@ Soporte y siguientes pasos
   - ayudarte a actualizar Jenkins/plugins si preferís evitar errores de compatibilidad.
 
 -- Fin --
+
+Crear jobs sin GitHub (modo offline / local)
+------------------------------------------
+
+Si prefieres crear los jobs en tu Jenkins local sin usar GitHub (por ejemplo para desarrollo con la copia local del repo), hay dos maneras:
+
+- Opción A (rápida): usar `create-jobs-inline.cmd` que está en `jenkins/scripts`. Este script escanea `jenkins/pipelines` en el repo y crea jobs en Jenkins con el contenido de cada `*.Jenkinsfile` embebido directamente en la configuración del job (no necesita que Jenkins clone ningún repositorio).
+
+   Pasos:
+
+   1. Arrancar Jenkins (ver sección arriba). Asegúrate que Jenkins esté accesible en `http://localhost:8081` y que las credenciales en `jenkins/scripts/create-jobs-inline.cmd` (por defecto `admin:admin123`) sean correctas.
+   2. Abrir PowerShell en `jenkins\scripts` y ejecutar:
+
+```powershell
+cd jenkins\scripts
+.\create-jobs-inline.cmd
+```
+
+   3. El script descargará `jenkins-cli.jar` si es necesario y creará jobs nombrados según la ruta relativa del Jenkinsfile (por ejemplo `dev-all-services-dev` o `service-favourite-service-dev`).
+
+- Opción B (manual): desde la UI de Jenkins crear un nuevo Pipeline job y pegar manualmente el contenido del `Jenkinsfile` (abrir el archivo en `jenkins/pipelines/...` y copiar/pegar en la sección "Pipeline script").
+
+Notas:
+- Los jobs creados inline son independientes del repositorio. Si luego actualizas los Jenkinsfiles locales, deberás volver a ejecutar `create-jobs-inline.cmd` o actualizar los jobs manualmente.
+- Los scripts en `jenkins/scripts` incluyen también `create-job-xml.ps1` y `create-jobs.cmd` que crean jobs configurados para clonar el repo desde GitHub; mantienen compatibilidad si quieres volver a crear jobs apuntando a SCM remoto.
+
