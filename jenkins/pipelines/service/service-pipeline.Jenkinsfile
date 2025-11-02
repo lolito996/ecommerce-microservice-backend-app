@@ -57,9 +57,9 @@ pipeline {
                     }
                     echo "Found artifact(s): ${found}"
 
-                    // Build using repository root as context and the service Dockerfile
-                    echo "Building image ${imageName} using -f ${svc}/Dockerfile ${env.WORKSPACE}"
-                    def buildArgs = "-f ${svc}/Dockerfile ${env.WORKSPACE}"
+                    // Build using the service folder as context so Dockerfile COPY target/... resolves
+                    echo "Building image ${imageName} using -f ${svc}/Dockerfile ${env.WORKSPACE}/${svc}"
+                    def buildArgs = "-f ${svc}/Dockerfile ${env.WORKSPACE}/${svc}"
                     def image = docker.build(imageName, buildArgs)
                     docker.withRegistry('', 'docker-hub-credentials') {
                         image.push()

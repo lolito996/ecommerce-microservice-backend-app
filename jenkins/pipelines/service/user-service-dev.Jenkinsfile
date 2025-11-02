@@ -31,8 +31,8 @@ pipeline {
           def found = sh(returnStdout: true, script: "bash -lc 'ls ${env.WORKSPACE}/${svc}/target/*.jar 2>/dev/null || true'").trim()
           if (!found) { error "Artifact not found for ${svc}: looked for jars in ${env.WORKSPACE}/${svc}/target/. Ensure 'mvn package' ran successfully." }
           echo "Found artifact(s): ${found}"
-          echo "Building image ${imageName} using -f ${svc}/Dockerfile ${env.WORKSPACE}"
-          def buildArgs = "-f ${svc}/Dockerfile ${env.WORKSPACE}"
+          echo "Building image ${imageName} using -f ${svc}/Dockerfile ${env.WORKSPACE}/${svc}"
+          def buildArgs = "-f ${svc}/Dockerfile ${env.WORKSPACE}/${svc}"
           def image = docker.build(imageName, buildArgs)
           docker.withRegistry('', 'docker-hub-credentials') { image.push(); echo "Pushed ${imageName}" }
         }

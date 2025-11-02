@@ -119,9 +119,9 @@ pipeline {
                                         error "Artifact not found for ${svc}: looked for jars in ${env.WORKSPACE}/${svc}/target/. Ensure 'mvn package' ran successfully."
                                     }
                                     echo "Found artifact(s): ${found}"
-                                    echo "Building image ${imageName} using Dockerfile ${svc}/Dockerfile and workspace as context"
-                                    // Use the repo root as context and point to the service Dockerfile explicitly.
-                                    def buildArgs = "-f ${svc}/Dockerfile ${env.WORKSPACE}"
+                                    echo "Building image ${imageName} using Dockerfile ${svc}/Dockerfile and service folder as context"
+                                    // Use the service folder as build context so Dockerfile's COPY target/... resolves correctly
+                                    def buildArgs = "-f ${svc}/Dockerfile ${env.WORKSPACE}/${svc}"
                                     def image = docker.build(imageName, buildArgs)
                                     docker.withRegistry('', 'docker-hub-credentials') {
                                         image.push()

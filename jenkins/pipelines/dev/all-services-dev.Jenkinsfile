@@ -43,7 +43,7 @@ pipeline {
                         echo "FORCE_ALL set -> building all services: ${toBuild}"
                     } else {
                         sh 'git fetch origin --depth=1 || true'
-                        def baseBranch = sh(returnStdout: true, script: "bash -lc 'for br in dev master main; do if git ls-remote --heads origin ${br} | grep ${br} >/dev/null 2>&1; then echo ${br}; break; fi; done'").trim()
+                        def baseBranch = sh(returnStdout: true, script: '''bash -lc 'for br in dev master main; do if git ls-remote --heads origin ${br} | grep ${br} >/dev/null 2>&1; then echo ${br}; break; fi; done' ''').trim()
 
                         def changed = ""
                         if (baseBranch) {
@@ -123,8 +123,9 @@ pipeline {
                                         error "Artifact not found for ${svc}: looked for jars in ${env.WORKSPACE}/${svc}/target/"
                                     }
                                     echo "Found artifact(s): ${found}"
-                                    echo "Building image ${imageName}"
-                                    def buildArgs = "-f ${svc}/Dockerfile ${env.WORKSPACE}"
+                                    echo "Building image ${imageName} using service folder as build context"
+                                    // Use service directory as build context so Dockerfile's COPY target/... can find artifacts
+                                    def buildArgs = "-f ${svc}/Dockerfile ${env.WORKSPACE}/${svc}"
                                     def image = docker.build(imageName, buildArgs)
                                     docker.withRegistry('', 'docker-hub-credentials') {
                                         image.push()
