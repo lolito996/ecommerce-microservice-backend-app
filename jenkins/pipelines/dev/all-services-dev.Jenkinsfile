@@ -84,8 +84,9 @@ pipeline {
                 }
             }
         }
-        stage('Docker Build & Push (selected)') {
-            steps {
+                                        sh 'git fetch origin --depth=1 || true'
+                                        // Use a literal Groovy string to avoid GString interpolation of ${br}
+                                        def changed = sh(returnStdout: true, script: '''bash -lc 'for br in dev master main; do if git ls-remote --heads origin ${br} | grep ${br} >/dev/null 2>&1; then echo ${br}; break; fi; done' ''').trim()
                 script {
                     def toBuild = env.TO_BUILD.tokenize(',') as List
                     def buildStages = [:]

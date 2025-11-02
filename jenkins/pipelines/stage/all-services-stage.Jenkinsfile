@@ -37,7 +37,8 @@ pipeline {
                                 toBuild = services.findAll { s -> dirs.contains(s) }
                                 echo "Changed directories from git: ${dirs} -> will build: ${toBuild}"
                             } else {
-                                echo "No changed files detected relative to ${base}; defaulting to build all services"
+                                        // Use a literal Groovy string so ${br} is handled by the shell, not by Groovy
+                                        def remoteBase = sh(returnStdout: true, script: '''bash -lc 'for br in dev master main; do if git ls-remote --heads origin ${br} | grep ${br} >/dev/null 2>&1; then echo ${br}; break; fi; done' ''').trim()
                                 toBuild = services
                             }
                         } else {
