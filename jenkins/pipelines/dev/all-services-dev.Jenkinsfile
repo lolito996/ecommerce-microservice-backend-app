@@ -123,9 +123,23 @@ pipeline {
                                         error "Artifact not found for ${svc}: looked for jars in ${env.WORKSPACE}/${svc}/target/"
                                     }
                                     echo "Found artifact(s): ${found}"
-                                    echo "Building image ${imageName} using service folder as build context"
-                                    // Use service directory as build context so Dockerfile's COPY target/... can find artifacts
-                                    def buildArgs = "-f ${svc}/Dockerfile ${env.WORKSPACE}/${svc}"
+                                    // Choose build context depending on Dockerfile contents.
+                                    // If Dockerfile copies 'target/' then use the service folder as context,
+                                    // otherwise use repo root so Dockerfiles that COPY other services work.
+                                    def dockerfileText = ''
+                                    try {
+                                        dockerfileText = readFile("${svc}/Dockerfile")
+                                    } catch (e) {
+                                        echo "Could not read Dockerfile for ${svc}: ${e.getMessage()}"
+                                    }
+                                    def contextDir = env.WORKSPACE
+                                    if (dockerfileText?.contains('COPY target/') || dockerfileText?.contains('ADD target/')) {
+                                        contextDir = "${env.WORKSPACE}/${svc}"
+                                        echo "Using service folder as build context for ${svc}"
+                                    } else {
+                                        echo "Using repository root as build context for ${svc}"
+                                    }
+                                    def buildArgs = "-f ${svc}/Dockerfile ${contextDir}"
                                     def image = docker.build(imageName, buildArgs)
                                     docker.withRegistry('', 'docker-hub-credentials') {
                                         image.push()

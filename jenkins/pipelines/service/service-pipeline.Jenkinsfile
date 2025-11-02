@@ -57,9 +57,22 @@ pipeline {
                     }
                     echo "Found artifact(s): ${found}"
 
-                    // Build using the service folder as context so Dockerfile COPY target/... resolves
-                    echo "Building image ${imageName} using -f ${svc}/Dockerfile ${env.WORKSPACE}/${svc}"
-                    def buildArgs = "-f ${svc}/Dockerfile ${env.WORKSPACE}/${svc}"
+                    // Choose build context depending on Dockerfile contents (target jars vs repo-copying Dockerfiles)
+                    def dockerfileText = ''
+                    try {
+                        dockerfileText = readFile("${svc}/Dockerfile")
+                    } catch (e) {
+                        echo "Could not read Dockerfile for ${svc}: ${e.getMessage()}"
+                    }
+                    def contextDir = env.WORKSPACE
+                    if (dockerfileText?.contains('COPY target/') || dockerfileText?.contains('ADD target/')) {
+                        contextDir = "${env.WORKSPACE}/${svc}"
+                        echo "Using service folder as build context for ${svc}"
+                    } else {
+                        echo "Using repository root as build context for ${svc}"
+                    }
+                    echo "Building image ${imageName} using -f ${svc}/Dockerfile ${contextDir}"
+                    def buildArgs = "-f ${svc}/Dockerfile ${contextDir}"
                     def image = docker.build(imageName, buildArgs)
                     docker.withRegistry('', 'docker-hub-credentials') {
                         image.push()
