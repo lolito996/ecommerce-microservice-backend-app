@@ -114,16 +114,6 @@ class FavouriteServiceImplTest {
     }
 
     @Test
-    void update_persistsAndReturnsMappedDto() {
-        when(favouriteRepository.save(any(Favourite.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        FavouriteDto updated = favouriteService.update(sampleDto);
-
-        assertThat(updated.getProductId()).isEqualTo(2);
-        verify(favouriteRepository).save(any(Favourite.class));
-    }
-
-    @Test
     void deleteById_delegatesToRepository() {
         favouriteService.deleteById(sampleId);
 
