@@ -131,6 +131,24 @@ pipeline {
                 }
             }
         }
+        stage('Seed test data & Run E2E tests') {
+            steps {
+                script {
+                    echo 'Seeding test data into Kubernetes namespace'
+                    // apply seed job and wait
+                    sh "${WORKSPACE}/jenkins/scripts/seed-data.sh ${KUBERNETES_NAMESPACE}"
+                    // Decide TEST_BASE_URL: prefer cluster DNS if Jenkins agent inside cluster; otherwise port-forward
+                    def testBase = "http://api-gateway:${8080}"
+                    // Run E2E tests using Maven module e2e-tests
+                    withEnv(["TEST_BASE_URL=${testBase}"]) {
+                        dir('') {
+                            // run only E2E tests (pattern *E2E*)
+                            sh "mvn -B -pl e2e-tests -DskipTests=false -Dtest=*E2E* test"
+                        }
+                    }
+                }
+            }
+        }
         stage('Integration Tests (against cluster)') {
             steps {
                 script {
