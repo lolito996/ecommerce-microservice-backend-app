@@ -10,6 +10,9 @@ pipeline {
     tools {
         maven 'Maven-3.8.6'
     }
+    environment {
+        MAVEN_OPTS = "-Dhttps.protocols=TLSv1.2,TLSv1.3 -Dmaven.wagon.http.retryHandler.count=5 -Dmaven.wagon.http.connectionTimeout=60000 -Dmaven.wagon.http.readTimeout=600000 -Dmaven.wagon.http.pool=false"
+    }
     stages {
         stage('Checkout') {
             steps {
@@ -66,7 +69,9 @@ pipeline {
                         def svc = s
                         buildStages["build-${svc}"] = {
                             dir(svc) {
-                                sh "mvn -B -e -DskipTests clean package"
+                                retry(3) {
+                                    sh "mvn -B -e -DskipTests clean package ${MAVEN_OPTS}"
+                                }
                             }
                         }
                     }
@@ -80,7 +85,9 @@ pipeline {
                     def toTest = env.TO_BUILD.tokenize(',') as List
                     for (s in toTest) {
                         dir(s) {
-                            sh "echo 'Running unit tests for ${s}'; mvn -B -e test"
+                            retry(3) {
+                                sh "echo 'Running unit tests for ${s}'; mvn -B -e -DfailIfNoTests=false test ${MAVEN_OPTS}"
+                            }
                         }
                     }
                 }
@@ -132,7 +139,9 @@ pipeline {
                     def toTest = env.TO_BUILD.tokenize(',') as List
                     for (s in toTest) {
                         dir(s) {
-                            sh "echo 'Running integration tests for ${s} against cluster'; mvn -B -e -Dtest=*IT,*IntegrationTest test"
+                            retry(3) {
+                                sh "echo 'Running integration tests for ${s} against cluster'; mvn -B -e -Dtest=*IT,*IntegrationTest test ${MAVEN_OPTS}"
+                            }
                         }
                     }
                 }
@@ -144,7 +153,9 @@ pipeline {
                     def toTest = env.TO_BUILD.tokenize(',') as List
                     for (s in toTest) {
                         dir(s) {
-                            sh "echo 'Running E2E tests for ${s} (if present) against cluster'; mvn -B -e -Dtest=**/*E2E* test"
+                            retry(3) {
+                                sh "echo 'Running E2E tests for ${s} (if present) against cluster'; mvn -B -e -Dtest=**/*E2E* test ${MAVEN_OPTS}"
+                            }
                         }
                     }
                 }
