@@ -66,7 +66,7 @@ if exist "%DEV_JENKINSFILE%" (
 		echo       ^</userRemoteConfigs^>
 		echo       ^<branches^>
 		echo         ^<hudson.plugins.git.BranchSpec^>
-		echo           ^<name^>*/kubernetes^</name^>
+		echo           ^<name^>*/pipelines^</name^>
 		echo         ^</hudson.plugins.git.BranchSpec^>
 		echo       ^</branches^>
 		echo       ^<doGenerateSubmoduleConfigurations^>false^</doGenerateSubmoduleConfigurations^>
@@ -103,7 +103,7 @@ if exist "%STAGE_JENKINSFILE%" (
 		echo       ^</userRemoteConfigs^>
 		echo       ^<branches^>
 		echo         ^<hudson.plugins.git.BranchSpec^>
-		echo           ^<name^>*/kubernetes^</name^>
+		echo           ^<name^>*/pipelines^</name^>
 		echo         ^</hudson.plugins.git.BranchSpec^>
 		echo       ^</branches^>
 		echo       ^<doGenerateSubmoduleConfigurations^>false^</doGenerateSubmoduleConfigurations^>
