@@ -116,12 +116,16 @@ class FavouriteResourceIT {
     @Test
     void updateWithId_reusesUpdateMethod() throws Exception {
         when(favouriteService.update(any(FavouriteDto.class))).thenReturn(sampleDto);
-
-        mockMvc.perform(put("/api/favourites/{userId}/{productId}/{likeDate}", 1, 2, likeDateString)
+        // Controller only exposes PUT at /api/favourites (body-based update). Use that endpoint here.
+        mockMvc.perform(put("/api/favourites")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sampleDto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.productId").value(2));
+                .andExpect(jsonPath("$.productId").value(2))
+                .andExpect(jsonPath("$.product.productId").value(2));
+
+        // ensure service update was invoked
+        verify(favouriteService).update(any(FavouriteDto.class));
     }
 
     @Test
