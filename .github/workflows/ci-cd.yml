@@ -123,7 +123,7 @@ jobs:
       - name: Build & Push user-service
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./user-service
           file: ./user-service/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/alejomunoz/user-service-ecommerce-boot:0.1.0
