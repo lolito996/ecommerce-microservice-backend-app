@@ -2,9 +2,9 @@ name: CI/CD Monorepo Microservicios
 
 on:
   push:
-    branches: [ dev, main ]
+    branches: [ dev, main, pipelines ]
   pull_request:
-    branches: [ dev, main ]
+    branches: [ dev, main, pipelines ]
 
 jobs:
   build-and-deploy:

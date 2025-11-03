@@ -1,0 +1,93 @@
+name: Local Deploy to Minikube (hybrid)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - pipelines
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+
+    env:
+      COMPOSE_FILE: ./compose.yml
+      LOAD_SCRIPT: ./load-images-minikube.bat
+      K8S_MANIFEST: ./k8s-optimized.yaml
+      NAMESPACE: ecommerce-microservices
+
+    steps:
+      # 🧾 Obtener el código del repositorio
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ⚙️ Configurar kubectl
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      # 🧩 Verificar si Minikube está corriendo
+      - name: Ensure Minikube is running
+        shell: pwsh
+        run: |
+          $status = minikube status --format '{{.Host}}' 2>$null
+          if ($status -ne 'Running') {
+            Write-Host "🚀 Minikube no está corriendo. Iniciando..."
+            minikube start
+          } else {
+            Write-Host "✅ Minikube ya está en ejecución."
+          }
+
+      # 🧠 Verificar estado de los pods
+      - name: Check if pods are ready
+        id: check_pods
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'SilentlyContinue'
+          $pods = kubectl get pods -n $env:NAMESPACE --no-headers 2>$null
+          if ($pods -and ($pods -notmatch "0/") -and ($pods -match "Running")) {
+            Write-Host "✅ Todos los pods están en estado Running y listos. Saltando despliegue."
+            echo "SKIP_DEPLOY=true" >> $env:GITHUB_ENV
+          } else {
+            Write-Host "🚀 Algunos pods no están listos. Procediendo con el despliegue."
+            echo "SKIP_DEPLOY=false" >> $env:GITHUB_ENV
+          }
+
+      # 🏗️ Construcción de imágenes Docker
+      - name: Build Docker images
+        if: env.SKIP_DEPLOY == 'false'
+        shell: pwsh
+        run: docker compose -f $env:COMPOSE_FILE build
+
+      # 📦 Cargar imágenes en Minikube
+      - name: Load images into Minikube
+        if: env.SKIP_DEPLOY == 'false'
+        shell: pwsh
+        run: |
+          Write-Host "🔄 Ejecutando script de carga: $env:LOAD_SCRIPT"
+          & $env:LOAD_SCRIPT
+
+      # 🚢 Despliegue a Kubernetes
+      - name: Deploy to Kubernetes
+        if: env.SKIP_DEPLOY == 'false'
+        run: kubectl apply -f $env:K8S_MANIFEST
+
+      # ⏳ Esperar que los despliegues se apliquen correctamente
+      - name: Wait for deployments rollout
+        if: env.SKIP_DEPLOY == 'false'
+        shell: pwsh
+        run: |
+          $deps = kubectl get deployments -n $env:NAMESPACE -o jsonpath="{.items[*].metadata.name}"
+          foreach ($d in $deps.Split(' ')) {
+            if ($d) {
+              Write-Host "⏳ Esperando rollout de $d..."
+              kubectl rollout status deployment/$d -n $env:NAMESPACE --timeout=3m
+            }
+          }
+
+      # 🔍 Verificar estado final de los pods
+      - name: Verify pods status
+        run: kubectl get pods -n $env:NAMESPACE

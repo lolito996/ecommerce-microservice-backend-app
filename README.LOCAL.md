@@ -46,3 +46,37 @@ $tempXml = "$PWD\temp-job.xml"
 
 2. En Jenkins, crea un nuevo job de tipo Pipeline desde SCM apuntando al `Jenkinsfile` en la rama `pipelines`.
 
+
+
+Local Deploy (GitHub Actions) — Minikube
+--------------------------------------
+
+He añadido un workflow de GitHub Actions llamado `Local Deploy to Minikube` en `.github/workflows/local-deploy-minikube.yml` y un script de carga de imágenes `load-images-minikube.bat` en la raíz.
+
+Resumen rápido:
+- Workflow: se dispara en push a `main` o `master` (puedes cambiar la rama si prefieres `pipelines`).
+- Requisitos del runner: debe ser `self-hosted` y tener Docker, Minikube y kubectl disponibles. El workflow usa PowerShell (shell: pwsh).
+- Qué hace:
+  - Comprueba si ya hay pods en el namespace `ecommerce-microservices`; si todos están `Running` omite el despliegue.
+  - Si hace falta, construye las imágenes usando `docker compose -f compose.yml build`.
+  - Ejecuta `load-images-minikube.bat` para cargar las imágenes en Minikube.
+  - Aplica el manifiesto Kubernetes definido en `k8s-optimized.yaml` y espera el rollout de los deployments.
+
+Cómo usarlo localmente:
+1. Asegúrate de tener un runner self-hosted registrado en GitHub con Docker, kubectl y Minikube.
+2. Inicia Minikube y verifica que funciona:
+
+```powershell
+minikube start
+minikube status
+```
+
+3. Empuja (push) a `main` o `master` para que se ejecute el workflow, o ejecútalo manualmente desde la UI de Actions si prefieres.
+
+Notas adicionales:
+- La ruta del manifiesto por defecto es `./k8s-optimized.yaml`. Cámbiala en el workflow si usas otro fichero (por ejemplo `kubernetes/k8s-all-in-one.yaml`).
+- El script `load-images-minikube.bat` contiene cargas para las imágenes presentes en este proyecto; si cambias tags o nombres de imagen actualiza el script.
+- Si quieres, puedo:
+  - Añadir `workflow_dispatch` (ejecución manual) y variables de entrada al workflow.
+  - Crear un workflow para CI que ejecute tests por servicio (dev) y otro para stage que ejecute las pruebas E2E/Locust dentro de Kubernetes.
+
