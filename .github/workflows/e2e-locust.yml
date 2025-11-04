@@ -43,10 +43,13 @@ jobs:
           kubectl version --client -o yaml
           kubectl get nodes -o wide
 
+      - name: Ensure namespace exists
+        run: |
+          kubectl get namespace ecommerce || kubectl create namespace ecommerce
+
       - name: Apply manifests (YAML)
         run: |
           kubectl apply -f kubernetes
-          kubectl get ns ecommerce
 
       - name: Wait for deployments Ready
         run: |
