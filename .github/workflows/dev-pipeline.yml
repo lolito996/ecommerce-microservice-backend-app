@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - master
+      - pipelines
   pull_request:
     branches:
       - main
       - master
+      - pipelines
 
 jobs:
   build-and-test:
