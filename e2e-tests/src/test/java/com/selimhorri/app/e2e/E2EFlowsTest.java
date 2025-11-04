@@ -38,7 +38,7 @@ class E2EFlowsTest {
                 .contentType(ContentType.JSON)
                 .body(user.toString())
         .when()
-                .post("/api/users")
+                .post("/user-service/api/users")
         .then()
                 .statusCode(anyOf(is(200), is(201)))
                 .body("email", equalTo(user.get("email").asText()))
@@ -54,7 +54,7 @@ class E2EFlowsTest {
                 .contentType(ContentType.JSON)
                 .body(product.toString())
         .when()
-                .post("/api/products")
+                .post("/app/api/products")
         .then()
                 .statusCode(anyOf(is(200), is(201)))
                 .body("productTitle", equalTo(product.get("productTitle").asText()))
@@ -85,7 +85,7 @@ class E2EFlowsTest {
                 .contentType(ContentType.JSON)
                 .body(order)
         .when()
-                .post("/api/orders")
+                .post("/app/api/orders")
         .then()
                 .statusCode(anyOf(is(200), is(201)))
                 .body("orderDesc", equalTo("E2E test order"));
@@ -108,7 +108,7 @@ class E2EFlowsTest {
                 .contentType(ContentType.JSON)
                 .body(fav)
         .when()
-                .post("/api/favourites")
+                .post("/app/api/favourites")
         .then()
                 .statusCode(anyOf(is(200), is(201)))
                 .body("userId", equalTo(userId))
@@ -117,7 +117,7 @@ class E2EFlowsTest {
         // fetch via path-based id
         given()
                 .when()
-                .get(String.format("/api/favourites/%d/%d/%s", userId, productId, likeDate))
+                .get(String.format("/app/api/favourites/%d/%d/%s", userId, productId, likeDate))
         .then()
                 .statusCode(200)
                 .body("userId", equalTo(userId))
@@ -140,14 +140,14 @@ class E2EFlowsTest {
                 .contentType(ContentType.JSON)
                 .body(fav)
         .when()
-                .post("/api/favourites")
+                .post("/app/api/favourites")
         .then()
                 .statusCode(anyOf(is(200), is(201)));
 
         // get favourites list and verify there's at least one with our productId
         given()
                 .when()
-                .get("/api/favourites")
+                .get("/app/api/favourites")
         .then()
                 .statusCode(200)
                 .body("content.productId", hasItem(productId));
@@ -163,7 +163,7 @@ class E2EFlowsTest {
                 .contentType(ContentType.JSON)
                 .body(user.toString())
         .when()
-                .post("/api/users")
+                .post("/app/api/users")
         .then()
                 .statusCode(anyOf(is(200), is(201)))
                 .extract().path("userId");
@@ -177,7 +177,7 @@ class E2EFlowsTest {
                 .contentType(ContentType.JSON)
                 .body(product.toString())
         .when()
-                .post("/api/products")
+                .post("/app/api/products")
         .then()
                 .statusCode(anyOf(is(200), is(201)))
                 .extract().path("productId");

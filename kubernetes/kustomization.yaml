@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace-container.yaml
+  - zipkin.yaml
+  - service.discovery-container.yaml
+  - cloud.config-container.yaml
+  - api.gateway-container.yaml
+  - proxy.client-container.yaml
+  - order.service-container.yaml
+  - payment.service-container.yaml
+  - product.service-container.yaml
+  - shipping.service-container.yaml
+  - user.service-container.yaml
+  - favourite.service-container.yaml

@@ -41,6 +41,26 @@ echo 6. Cargando Zipkin...
 call :load_or_pull openzipkin/zipkin latest "Zipkin"
 
 echo.
+echo 7. Cargando Favourite Service...
+call :load_or_pull selimhorri/favourite-service-ecommerce-boot 0.1.0 "Favourite Service"
+
+echo.
+echo 8. Cargando Order Service...
+call :load_or_pull selimhorri/order-service-ecommerce-boot 0.1.0 "Order Service"
+
+echo.
+echo 9. Cargando Payment Service...
+call :load_or_pull selimhorri/payment-service-ecommerce-boot 0.1.0 "Payment Service"
+
+echo.
+echo 10. Cargando Product Service...
+call :load_or_pull selimhorri/product-service-ecommerce-boot 0.1.0 "Product Service"
+
+echo.
+echo 11. Cargando Shipping Service...
+call :load_or_pull selimhorri/shipping-service-ecommerce-boot 0.1.0 "Shipping Service"
+
+echo.
 echo ============================================
 echo VERIFICANDO IMAGENES CARGADAS
 echo ============================================
@@ -61,6 +81,11 @@ echo - Cloud Config (selimhorri/cloud-config-ecommerce-boot:0.1.0)
 echo - User Service (selimhorri/user-service-ecommerce-boot:0.1.0)
 echo - Proxy Client (selimhorri/proxy-client-ecommerce-boot:0.1.0)
 echo - Zipkin (openzipkin/zipkin:latest)
+echo - Favourite Service (selimhorri/favourite-service-ecommerce-boot:0.1.0)
+echo - Order Service (selimhorri/order-service-ecommerce-boot:0.1.0)
+echo - Payment Service (selimhorri/payment-service-ecommerce-boot:0.1.0)
+echo - Product Service (selimhorri/product-service-ecommerce-boot:0.1.0)
+echo - Shipping Service (selimhorri/shipping-service-ecommerce-boot:0.1.0)
 echo.
 echo Ahora puedes desplegar con: kubectl apply -f k8s-all-in-one.yaml
 

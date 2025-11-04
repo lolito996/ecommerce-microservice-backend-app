@@ -19,7 +19,7 @@ class ApiGatewayE2E {
     void listProducts_returns200() {
         given()
                 .when()
-                .get("/api/products")
+            .get("/app/api/products")
                 .then()
                 .statusCode(200);
     }
