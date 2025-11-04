@@ -2,9 +2,9 @@ name: E2E - Locust on kind
 
 on:
   push:
-    branches: [ "dev", "pipelines"  ]
+    branches: [ "Master","dev", "pipelines"  ]
   pull_request:
-    branches: [ "dev","pipelines" ]
+    branches: [ "Master","dev","pipelines" ]
   workflow_dispatch: {}
 
 jobs:

@@ -3,12 +3,12 @@ name: Development CI Pipeline
 on:
   push:
     branches:
-      - main
+      - dev
       - master
       - pipelines
   pull_request:
     branches:
-      - main
+      - dev
       - master
       - pipelines
 
