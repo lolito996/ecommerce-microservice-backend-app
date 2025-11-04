@@ -9,7 +9,7 @@ on:
 
 jobs:
   e2e-locust:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 45
 
     steps:
