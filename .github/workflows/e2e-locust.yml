@@ -11,7 +11,6 @@ jobs:
   e2e-locust:
     runs-on: self-hosted
     timeout-minutes: 45
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,52 +31,21 @@ jobs:
         with:
           version: latest
 
-      - name: Install kind
-        uses: helm/kind-action@v1.10.0
-        with:
-          version: v0.23.0
-
-      - name: Create kind cluster
-        run: |
-          kind create cluster --name dev-e2e --wait 120s
-          kubectl version --client -o yaml
-          kubectl get nodes -o wide
-
-      - name: Ensure namespace exists
-        run: |
-          kubectl get namespace ecommerce || kubectl create namespace ecommerce
-
-      - name: Apply manifests (YAML)
-        run: |
-          kubectl apply -f kubernetes
-
-      - name: Wait for deployments Ready
-        run: |
-          set -e
-          kubectl -n ecommerce wait --for=condition=available --timeout=360s deployment --all
-          kubectl -n ecommerce wait --for=condition=ready --timeout=360s pod --all
-          kubectl -n ecommerce get pods -o wide
-
       - name: Port-forward services to localhost
         run: |
           set -e
-          # Port-forward por Service, como en local
           nohup kubectl -n ecommerce port-forward svc/product-service 8500:8500 >/dev/null 2>&1 & echo $! > pf_product.pid
           nohup kubectl -n ecommerce port-forward svc/user-service 8700:8700   >/dev/null 2>&1 & echo $! > pf_user.pid
           nohup kubectl -n ecommerce port-forward svc/shipping-service 8600:8600 >/dev/null 2>&1 & echo $! > pf_shipping.pid
           nohup kubectl -n ecommerce port-forward svc/payment-service 8400:8400  >/dev/null 2>&1 & echo $! > pf_payment.pid
           nohup kubectl -n ecommerce port-forward svc/order-service 8300:8300    >/dev/null 2>&1 & echo $! > pf_order.pid
           nohup kubectl -n ecommerce port-forward svc/favourite-service 8800:8800 >/dev/null 2>&1 & echo $! > pf_favourite.pid
-
           sleep 30
 
       - name: Warm-up and readiness checks (retry)
         run: |
           set -e
-          # Aumenta el tiempo de espera a 10 minutos (120 intentos x 5s)
           retry() { for i in $(seq 1 120); do curl -fsS "$1" && echo "\nOK: $1" && return 0; echo "Retry $i: $1"; sleep 5; done; return 1; }
-
-          # Primero check de health
           if ! retry http://localhost:8500/product-service/actuator/health; then
             echo "DIAGNOSTICO: health de product-service";
             kubectl -n ecommerce get svc product-service -o yaml || true
@@ -87,8 +55,6 @@ jobs:
             [ -n "$P_PRODUCT" ] && kubectl -n ecommerce logs "$P_PRODUCT" --tail=300 || true
             exit 1
           fi
-
-          # Luego check del endpoint real
           if ! retry http://localhost:8500/product-service/api/products; then
             echo "DIAGNOSTICO: estado de product-service";
             kubectl -n ecommerce get svc product-service -o yaml || true
@@ -98,7 +64,6 @@ jobs:
             [ -n "$P_PRODUCT" ] && kubectl -n ecommerce logs "$P_PRODUCT" --tail=300 || true
             exit 1
           fi
-
           if ! retry http://localhost:8700/user-service/api/users; then
             echo "DIAGNOSTICO: estado de user-service";
             kubectl -n ecommerce get svc user-service -o yaml || true
@@ -108,7 +73,6 @@ jobs:
             [ -n "$P_USER" ] && kubectl -n ecommerce logs "$P_USER" --tail=300 || true
             exit 1
           fi
-
           curl -fsS http://localhost:8600/shipping-service/api/shippings || true
           curl -fsS http://localhost:8400/payment-service/api/payments || true
           curl -fsS http://localhost:8300/order-service/api/orders || true
@@ -139,4 +103,3 @@ jobs:
         run: |
           set +e
           for pid in pf_*.pid; do [ -f "$pid" ] && kill $(cat "$pid") 2>/dev/null || true; done
-          kind delete cluster --name dev-e2e
