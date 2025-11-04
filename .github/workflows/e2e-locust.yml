@@ -41,6 +41,7 @@ jobs:
           nohup kubectl -n ecommerce port-forward svc/order-service 8300:8300    >/dev/null 2>&1 & echo $! > pf_order.pid
           nohup kubectl -n ecommerce port-forward svc/favourite-service 8800:8800 >/dev/null 2>&1 & echo $! > pf_favourite.pid
           sleep 30
+        shell: bash
 
       - name: Warm-up and readiness checks (retry)
         run: |
@@ -77,6 +78,7 @@ jobs:
           curl -fsS http://localhost:8400/payment-service/api/payments || true
           curl -fsS http://localhost:8300/order-service/api/orders || true
           curl -fsS http://localhost:8800/favourite-service/api/favourites || true
+        shell: bash
 
       - name: Run Locust (headless)
         env:
@@ -103,3 +105,4 @@ jobs:
         run: |
           set +e
           for pid in pf_*.pid; do [ -f "$pid" ] && kill $(cat "$pid") 2>/dev/null || true; done
+        shell: bash
