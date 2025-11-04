@@ -61,23 +61,13 @@ jobs:
       - name: Port-forward services to localhost
         run: |
           set -e
-          pod_of() { kubectl -n "$1" get pod -l app="$2" -o jsonpath='{.items[0].metadata.name}'; }
-
-          P_PRODUCT=$(pod_of ecommerce product-service)
-          P_USER=$(pod_of ecommerce user-service)
-          P_SHIP=$(pod_of ecommerce shipping-service)
-          P_PAY=$(pod_of ecommerce payment-service)
-          P_ORDER=$(pod_of ecommerce order-service)
-          P_FAV=$(pod_of ecommerce favourite-service)
-
-          echo "PF -> product-service: $P_PRODUCT, user-service: $P_USER, shipping: $P_SHIP, payment: $P_PAY, order: $P_ORDER, favourite: $P_FAV"
-
-          nohup kubectl -n ecommerce port-forward pod/$P_PRODUCT 8500:8500 >/dev/null 2>&1 & echo $! > pf_product.pid
-          nohup kubectl -n ecommerce port-forward pod/$P_USER 8700:8700   >/dev/null 2>&1 & echo $! > pf_user.pid
-          nohup kubectl -n ecommerce port-forward pod/$P_SHIP 8600:8600   >/dev/null 2>&1 & echo $! > pf_shipping.pid
-          nohup kubectl -n ecommerce port-forward pod/$P_PAY 8400:8400    >/dev/null 2>&1 & echo $! > pf_payment.pid
-          nohup kubectl -n ecommerce port-forward pod/$P_ORDER 8300:8300  >/dev/null 2>&1 & echo $! > pf_order.pid
-          nohup kubectl -n ecommerce port-forward pod/$P_FAV 8800:8800    >/dev/null 2>&1 & echo $! > pf_favourite.pid
+          # Port-forward por Service, como en local
+          nohup kubectl -n ecommerce port-forward svc/product-service 8500:8500 >/dev/null 2>&1 & echo $! > pf_product.pid
+          nohup kubectl -n ecommerce port-forward svc/user-service 8700:8700   >/dev/null 2>&1 & echo $! > pf_user.pid
+          nohup kubectl -n ecommerce port-forward svc/shipping-service 8600:8600 >/dev/null 2>&1 & echo $! > pf_shipping.pid
+          nohup kubectl -n ecommerce port-forward svc/payment-service 8400:8400  >/dev/null 2>&1 & echo $! > pf_payment.pid
+          nohup kubectl -n ecommerce port-forward svc/order-service 8300:8300    >/dev/null 2>&1 & echo $! > pf_order.pid
+          nohup kubectl -n ecommerce port-forward svc/favourite-service 8800:8800 >/dev/null 2>&1 & echo $! > pf_favourite.pid
 
           sleep 30
 
