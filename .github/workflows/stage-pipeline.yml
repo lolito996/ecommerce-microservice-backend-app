@@ -2,7 +2,7 @@ name: Stage Pipeline - Integration Tests & Deploy
 
 on:
   workflow_run:
-    workflows: ["Dev Microservices CI Pipeline"]
+    workflows: ["dev-pipeline"]
     types:
       - completed
     branches:
