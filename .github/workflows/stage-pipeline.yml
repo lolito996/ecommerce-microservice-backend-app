@@ -21,7 +21,7 @@ on:
 jobs:
   stage-deploy:
     runs-on: self-hosted
-    if: ${{ (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event_name == 'pull_request' }}
     env:
       COMPOSE_FILE: ./compose.yml
       LOAD_SCRIPT: ./load-images-minikube.bat
