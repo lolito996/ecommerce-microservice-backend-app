@@ -48,37 +48,6 @@ jobs:
           cd cloud-config && ./mvnw clean package -DskipTests && cd ..
           cd service-discovery && ./mvnw clean package -DskipTests && cd ..
 
-      # Verificar JAR generados de todos los servicios
-      - name: Verificar JAR api-gateway
-        run: ls -l api-gateway/target/
-      - name: Verificar JAR proxy-client
-        run: ls -l proxy-client/target/
-      - name: Verificar JAR order-service
-        run: ls -l order-service/target/
-      - name: Verificar JAR payment-service
-        run: ls -l payment-service/target/
-      - name: Verificar JAR product-service
-        run: ls -l product-service/target/
-      - name: Verificar JAR user-service
-        run: ls -l user-service/target/
-      - name: Verificar JAR favourite-service
-        run: ls -l favourite-service/target/
-      - name: Verificar JAR shipping-service
-        run: ls -l shipping-service/target/
-      - name: Verificar JAR cloud-config
-        run: ls -l cloud-config/target/
-      - name: Verificar JAR service-discovery
-        run: ls -l service-discovery/target/
-
-      - name: Verify api-gateway JAR
-        run: |
-          if [ ! -f api-gateway/target/api-gateway-v0.1.0.jar ]; then
-            echo "ERROR: api-gateway JAR not found in api-gateway/target/"
-            ls -la api-gateway || true
-            ls -la api-gateway/target || true
-            exit 1
-          fi
-
       # Build & Push de todos los microservicios y core
       - name: Build & Push api-gateway
         uses: docker/build-push-action@v5
