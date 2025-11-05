@@ -7,6 +7,12 @@ on:
       - dev
       - master
       - pipelines
+  pull_request:
+    branches:
+      - main
+      - dev
+      - master
+      - pipelines
   workflow_dispatch:
 
 jobs:
