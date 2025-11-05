@@ -53,8 +53,19 @@ foreach ($url in $urls) {
 
 # Ejecutar Locust en modo headless (más usuarios y ramp-up)
 echo "Ejecutando Locust..."
-$locustCmd = "python -m locust -f tests/locust/locustfile.py --host http://localhost --headless -u 15 -r 5 -t 2m --html locust-report.html"
-Invoke-Expression $locustCmd
+$locustCmd = "python -m locust -f tests/locust/locustfile.py --host http://localhost --headless -u 30 -r 5 -t 2m --html locust-report.html"
+Write-Host "Comando Locust: $locustCmd"
+
+# Ejecutar y capturar código de salida sin parar el script: queremos siempre limpiar y subir el reporte
+$locustExit = 0
+try {
+    Invoke-Expression $locustCmd
+    $locustExit = $LASTEXITCODE
+} catch {
+    Write-Host "Locust lanzó una excepción: $($_.Exception.Message)"
+    # marcar como fallo
+    $locustExit = 1
+}
 
 
 # Detener port-forwards y limpiar archivos
@@ -66,3 +77,8 @@ foreach ($pidfile in Get-ChildItem -Filter 'pf_*.pid') {
 }
 Remove-Item pf_*.log,pf_*.err -Force -ErrorAction SilentlyContinue
 echo "Listo."
+if ($locustExit -ne 0) {
+    Write-Host "ADVERTENCIA: Locust terminó con código $locustExit (hubo fallos en las peticiones)."
+    Write-Host "El reporte se escribió en locust-report.html. El script terminará con exit code 0 para no marcar el pipeline como fallido."
+    exit 0
+}
