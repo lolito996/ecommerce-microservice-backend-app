@@ -31,78 +31,13 @@ jobs:
         with:
           version: latest
 
-      - name: Port-forward services to localhost
+      - name: Run Locust E2E script
+        shell: pwsh
         run: |
-          set -e
-          nohup kubectl -n ecommerce port-forward svc/product-service 8500:8500 >/dev/null 2>&1 & echo $! > pf_product.pid
-          nohup kubectl -n ecommerce port-forward svc/user-service 8700:8700   >/dev/null 2>&1 & echo $! > pf_user.pid
-          nohup kubectl -n ecommerce port-forward svc/shipping-service 8600:8600 >/dev/null 2>&1 & echo $! > pf_shipping.pid
-          nohup kubectl -n ecommerce port-forward svc/payment-service 8400:8400  >/dev/null 2>&1 & echo $! > pf_payment.pid
-          nohup kubectl -n ecommerce port-forward svc/order-service 8300:8300    >/dev/null 2>&1 & echo $! > pf_order.pid
-          nohup kubectl -n ecommerce port-forward svc/favourite-service 8800:8800 >/dev/null 2>&1 & echo $! > pf_favourite.pid
-          sleep 30
-        shell: bash
-
-      - name: Warm-up and readiness checks (retry)
-        run: |
-          set -e
-          retry() { for i in $(seq 1 120); do curl -fsS "$1" && echo "\nOK: $1" && return 0; echo "Retry $i: $1"; sleep 5; done; return 1; }
-          if ! retry http://localhost:8500/product-service/actuator/health; then
-            echo "DIAGNOSTICO: health de product-service";
-            kubectl -n ecommerce get svc product-service -o yaml || true
-            kubectl -n ecommerce get endpoints product-service -o wide || true
-            kubectl -n ecommerce get pod -l app=product-service -o wide || true
-            P_PRODUCT=$(kubectl -n ecommerce get pod -l app=product-service -o jsonpath='{.items[0].metadata.name}' || true)
-            [ -n "$P_PRODUCT" ] && kubectl -n ecommerce logs "$P_PRODUCT" --tail=300 || true
-            exit 1
-          fi
-          if ! retry http://localhost:8500/product-service/api/products; then
-            echo "DIAGNOSTICO: estado de product-service";
-            kubectl -n ecommerce get svc product-service -o yaml || true
-            kubectl -n ecommerce get endpoints product-service -o wide || true
-            kubectl -n ecommerce get pod -l app=product-service -o wide || true
-            P_PRODUCT=$(kubectl -n ecommerce get pod -l app=product-service -o jsonpath='{.items[0].metadata.name}' || true)
-            [ -n "$P_PRODUCT" ] && kubectl -n ecommerce logs "$P_PRODUCT" --tail=300 || true
-            exit 1
-          fi
-          if ! retry http://localhost:8700/user-service/api/users; then
-            echo "DIAGNOSTICO: estado de user-service";
-            kubectl -n ecommerce get svc user-service -o yaml || true
-            kubectl -n ecommerce get endpoints user-service -o wide || true
-            kubectl -n ecommerce get pod -l app=user-service -o wide || true
-            P_USER=$(kubectl -n ecommerce get pod -l app=user-service -o jsonpath='{.items[0].metadata.name}' || true)
-            [ -n "$P_USER" ] && kubectl -n ecommerce logs "$P_USER" --tail=300 || true
-            exit 1
-          fi
-          curl -fsS http://localhost:8600/shipping-service/api/shippings || true
-          curl -fsS http://localhost:8400/payment-service/api/payments || true
-          curl -fsS http://localhost:8300/order-service/api/orders || true
-          curl -fsS http://localhost:8800/favourite-service/api/favourites || true
-        shell: bash
-
-      - name: Run Locust (headless)
-        env:
-          PRODUCT_URL: http://localhost:8500/product-service/api/products
-          USER_URL: http://localhost:8700/user-service/api/users
-          SHIPPING_URL: http://localhost:8600/shipping-service/api/shippings
-          PAYMENT_URL: http://localhost:8400/payment-service/api/payments
-          ORDER_URL: http://localhost:8300/order-service/api/orders
-          FAVOURITE_URL: http://localhost:8800/favourite-service/api/favourites
-          BASE_HOST: http://localhost
-        run: |
-          python -m locust -f tests/locust/locustfile.py --host http://localhost --headless -u 50 -r 10 -t 1m --html locust-report.html --csv locust-results
-
+          .\run-locust.ps1
       - name: Upload Locust report
         uses: actions/upload-artifact@v4
         with:
           name: locust-report
           path: |
             locust-report.html
-            locust-results*.csv
-
-      - name: Teardown
-        if: always()
-        run: |
-          set +e
-          for pid in pf_*.pid; do [ -f "$pid" ] && kill $(cat "$pid") 2>/dev/null || true; done
-        shell: bash

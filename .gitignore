@@ -34,3 +34,10 @@ build/
 
 
 jenkins/jenkins-setup
+# Ignore common runtime logs and error files
+*.err
+*.log
+# port-forward artifacts created by run-locust.ps1
+pf_*.log
+pf_*.err
+pf_*.pid
