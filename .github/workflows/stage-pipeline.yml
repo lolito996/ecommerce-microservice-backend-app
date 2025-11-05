@@ -1,0 +1,97 @@
+name: Stage Pipeline - Integration Tests & Deploy
+
+on:
+    push:
+      branches:
+        - master
+        - dev
+        - pipelines
+    pull_request:
+      branches:
+        - master
+        - dev
+        - pipelines
+    workflow_run:
+      workflows:
+        - '*'
+      types:
+        - completed
+    workflow_dispatch:
+
+jobs:
+  stage-deploy:
+    runs-on: self-hosted
+    if: ${{ github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event_name == 'pull_request' }}
+    env:
+      COMPOSE_FILE: ./compose.yml
+      LOAD_SCRIPT: ./load-images-minikube.bat
+      NAMESPACE: ecommerce
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Run Integration Tests
+        shell: powershell
+        run: |
+          Write-Host "Running integration tests for selected microservices..."
+          $services = @("api-gateway", "service-discovery", "zipkin", "cloud-config", "user-service", "product-service")
+          foreach ($service in $services) {
+            if (Test-Path "$service/src/test/java") {
+              Write-Host "Running integration tests for $service..."
+              cd $service
+              mvn test `-Dtest=*IntegrationTest `-Dspring.profiles.active=test `-Dmaven.test.failure.ignore=true
+              cd ..
+            }
+          }
+          Write-Host "Integration tests completed!"
+      - name: Ensure Minikube is running
+        shell: powershell
+        run: |
+          $status = minikube status --format '{{.Host}}' 2>$null
+          if ($status -ne 'Running') {
+            Write-Host "Minikube no está corriendo. Iniciando..."
+            minikube start
+          } else {
+            Write-Host "Minikube ya está en ejecución."
+          }
+      - name: Build Docker images
+        shell: powershell
+        run: |
+          Write-Host "Building Docker images for selected services..."
+          docker compose -f $env:COMPOSE_FILE build
+      - name: Load images into Minikube
+        shell: powershell
+        run: |
+          Write-Host "Cargando imágenes en Minikube..."
+          & $env:LOAD_SCRIPT
+      - name: Ensure namespace exists
+        shell: powershell
+        run: |
+          kubectl create namespace $env:NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+      - name: Deploy to Kubernetes
+        shell: powershell
+        run: |
+          kubectl apply -f kubernetes
+      - name: Wait for deployments rollout
+        shell: powershell
+        run: |
+          $deps = kubectl get deployments -n $env:NAMESPACE -o jsonpath="{.items[*].metadata.name}"
+          foreach ($d in $deps.Split(' ')) {
+            if ($d) {
+              Write-Host "Esperando rollout de $d..."
+              kubectl rollout status deployment/$d -n $env:NAMESPACE --timeout=3m
+            }
+          }
+      # Paso de E2E tests eliminado, ya que se ejecutan en otro pipeline
+      - name: Verify pods status
+        run: kubectl get pods -n $env:NAMESPACE

@@ -1,0 +1,119 @@
+name: Local Deploy to Minikube (hybrid)
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - master
+      - pipelines
+  pull_request:
+    branches:
+      - main
+      - dev
+      - master
+      - pipelines
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+
+    env:
+      COMPOSE_FILE: ./compose.yml
+      LOAD_SCRIPT: ./load-images-minikube.bat
+      K8S_MANIFEST: ./kubernetes
+      NAMESPACE: ecommerce
+
+    steps:
+      # 🧾 Obtener el código del repositorio
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ⚙️ Configurar kubectl
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      # 🧩 Verificar si Minikube está corriendo
+      - name: Ensure Minikube is running
+        shell: pwsh
+        run: |
+          $status = minikube status --format '{{.Host}}' 2>$null
+          if ($status -ne 'Running') {
+            Write-Host "🚀 Minikube no está corriendo. Iniciando..."
+            minikube start
+          } else {
+            Write-Host "✅ Minikube ya está en ejecución."
+          }
+
+      # 🧠 Verificar estado de los pods
+      - name: Check if pods are ready
+        id: check_pods
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'SilentlyContinue'
+          $pods = kubectl get pods -n $env:NAMESPACE --no-headers 2>$null
+          if ($pods -and ($pods -notmatch "0/") -and ($pods -match "Running")) {
+            Write-Host "✅ Todos los pods están en estado Running y listos. Saltando despliegue."
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "skip=true"
+          } else {
+            Write-Host "🚀 Algunos pods no están listos. Procediendo con el despliegue."
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "skip=false"
+          }
+
+      # 🏗️ Construcción de imágenes Docker
+      - name: Build Docker images
+        if: steps.check_pods.outputs.skip == 'false'
+        shell: pwsh
+        run: docker compose -f $env:COMPOSE_FILE build
+
+      # 📦 Cargar imágenes en Minikube
+      - name: Load images into Minikube
+        if: steps.check_pods.outputs.skip == 'false'
+        shell: pwsh
+        run: |
+          Write-Host "🔄 Ejecutando script de carga: $env:LOAD_SCRIPT"
+          & $env:LOAD_SCRIPT
+
+      - name: Show Minikube images
+        if: steps.check_pods.outputs.skip == 'false'
+        shell: pwsh
+        run: |
+          Write-Host "🖼️  Imágenes presentes en Minikube:"
+          minikube image ls
+
+      # 🏷️ Asegurar que la namespace existe (idempotente)
+      - name: Ensure namespace exists
+        if: steps.check_pods.outputs.skip == 'false'
+        shell: pwsh
+        run: |
+          Write-Host "🔐 Asegurando namespace: $env:NAMESPACE"
+          # Crear la namespace de forma idempotente (no falla si ya existe)
+          kubectl create namespace $env:NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+
+      # 🚢 Despliegue a Kubernetes
+      - name: Deploy to Kubernetes
+        if: steps.check_pods.outputs.skip == 'false'
+        shell: pwsh
+        run: |
+          Write-Host "📦 Aplicando manifiestos desde: $env:K8S_MANIFEST"
+          kubectl apply -f $env:K8S_MANIFEST
+
+      # ⏳ Esperar que los despliegues se apliquen correctamente
+      - name: Wait for deployments rollout
+        if: steps.check_pods.outputs.skip == 'false'
+        shell: pwsh
+        run: |
+          $deps = kubectl get deployments -n $env:NAMESPACE -o jsonpath="{.items[*].metadata.name}"
+          foreach ($d in $deps.Split(' ')) {
+            if ($d) {
+              Write-Host "⏳ Esperando rollout de $d..."
+              kubectl rollout status deployment/$d -n $env:NAMESPACE --timeout=3m
+            }
+          }
+
+      # 🔍 Verificar estado final de los pods
+      - name: Verify pods status
+        run: kubectl get pods -n $env:NAMESPACE

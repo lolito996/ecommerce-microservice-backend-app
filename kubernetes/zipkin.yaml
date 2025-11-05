@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: zipkin
-          image: openzipkin/zipkin
+          image: openzipkin/zipkin:2.24
           ports:
             - containerPort: 9411
 ---
@@ -31,5 +31,4 @@ spec:
     - name: http
       port: 9411
       targetPort: 9411
-      nodePort: 30911
-  type: NodePort
+  type: ClusterIP

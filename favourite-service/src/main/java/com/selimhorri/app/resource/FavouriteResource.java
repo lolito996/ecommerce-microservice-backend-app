@@ -76,6 +76,21 @@ public class FavouriteResource {
 		log.info("*** FavouriteDto, resource; update favourite *");
 		return ResponseEntity.ok(this.favouriteService.update(favouriteDto));
 	}
+
+	@PutMapping("/{userId}/{productId}/{likeDate}")
+	public ResponseEntity<FavouriteDto> updateById(
+			@PathVariable("userId") final String userId,
+			@PathVariable("productId") final String productId,
+			@PathVariable("likeDate") final String likeDate,
+			@RequestBody
+			@NotNull(message = "Input must not be NULL")
+			@Valid final FavouriteDto favouriteDto) {
+		log.info("*** FavouriteDto, resource; update favourite by id *");
+		favouriteDto.setUserId(Integer.parseInt(userId));
+		favouriteDto.setProductId(Integer.parseInt(productId));
+		favouriteDto.setLikeDate(LocalDateTime.parse(likeDate, DateTimeFormatter.ofPattern(AppConstant.LOCAL_DATE_TIME_FORMAT)));
+		return ResponseEntity.ok(this.favouriteService.update(favouriteDto));
+	}
 	
 	@DeleteMapping("/{userId}/{productId}/{likeDate}")
 	public ResponseEntity<Boolean> deleteById(

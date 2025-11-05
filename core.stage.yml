@@ -1,0 +1,17 @@
+version: '3'
+services:
+  service-discovery-container:
+    environment:
+      - SPRING_PROFILES_ACTIVE=stage
+      - SPRING_ZIPKIN_BASE_URL=http://zipkin:9411
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://cloud-config-container:9296/
+
+  cloud-config-container:
+    environment:
+      - SPRING_PROFILES_ACTIVE=stage
+      - SPRING_ZIPKIN_BASE_URL=http://zipkin:9411
+      - EUREKA_CLIENT_REGION=default
+      - EUREKA_CLIENT_AVAILABILITY_ZONES_DEFAULT=myzone
+      - EUREKA_CLIENT_AVAILABILITYZONES_DEFAULT=myzone
+      - EUREKA_CLIENT_SERVICEURL_MYZONE=http://service-discovery-container:8761/eureka
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-discovery-container:8761/eureka/

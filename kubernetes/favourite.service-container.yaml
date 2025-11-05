@@ -27,16 +27,39 @@ spec:
               value: optional:configserver:http://cloud-config:9296/
             - name: SPRING_CLOUD_CONFIG_URI
               value: http://cloud-config:9296
+            - name: SPRING_CLOUD_CONFIG_ENABLED
+              value: "false"
+            # Precedencia: ENV/sistema debe pisar config remota
+            - name: SPRING_CLOUD_CONFIG_ALLOW_OVERRIDE
+              value: "true"
+            - name: SPRING_CLOUD_CONFIG_OVERRIDE_SYSTEM_PROPERTIES
+              value: "true"
+            - name: SPRING_CLOUD_CONFIG_OVERRIDE_NONE
+              value: "false"
+            # Forzar defaultZone de Eureka
+            - name: SPRING_APPLICATION_JSON
+              value: '{"eureka":{"client":{"serviceUrl":{"defaultZone":"http://service-discovery:8761/eureka/"}}}}'
             - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
-              value: http://service-discovery:8761/eureka/
-            - name: EUREKA_CLIENT_SERVICE_URL_DEFAULT_ZONE
               value: http://service-discovery:8761/eureka/
             - name: EUREKA_CLIENT_REGISTER_WITH_EUREKA
               value: "true"
             - name: EUREKA_CLIENT_FETCH_REGISTRY
               value: "true"
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: update
+            # Registrar con IP del Pod en Eureka
             - name: EUREKA_INSTANCE_NON_SECURE_PORT
               value: "8800"
+            - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+              value: "true"
+            - name: EUREKA_INSTANCE_IP_ADDRESS
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: EUREKA_INSTANCE_HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
 ---
 apiVersion: v1
 kind: Service
@@ -50,5 +73,5 @@ spec:
     - name: http
       port: 8800
       targetPort: 8800
-      nodePort: 30880
+      nodePort: 30800
   type: NodePort
